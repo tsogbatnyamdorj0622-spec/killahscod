@@ -57,9 +57,9 @@ export default function Habits() {
       if (cur === undefined) { next.set(key, true); await upsert(h.id, date, true); addXp(XP_PER_HABIT); }
       else { next.delete(key); await del(h.id, date); addXp(-XP_PER_HABIT); }
     } else {
-      if (cur === undefined) { next.set(key, true); await upsert(h.id, date, true); addXp(XP_PER_HABIT); } // тэссэн = сайн
-      else if (cur === true) { next.set(key, false); await upsert(h.id, date, false); addXp(-XP_PER_HABIT); } // автсан
-      else { next.delete(key); await del(h.id, date); } // тэмдэглээгүй
+      // хорт: дарвал автсан (record нэмнэ), дахин дарвал автаагүй (устгана)
+      if (cur === undefined) { next.set(key, true); await upsert(h.id, date, true); }
+      else { next.delete(key); await del(h.id, date); }
     }
     setLogs(next);
   }
@@ -138,14 +138,15 @@ export default function Habits() {
             <tbody>
               {shown.map((h) => {
                 const isBreak = h.kind === "break";
-                // 30 хоногийн %: build → хийсэн, break → автсан
+                // build → хийсэн/30, break → автсан/30 (record байгаа=автсан)
                 const all = lastNDays(30);
-                let num = 0, den = 0;
+                let num = 0;
                 all.forEach((d) => {
                   const v = logsGet(logs, h.id, d);
-                  if (v !== undefined) { den++; if (isBreak ? v === false : v === true) num++; }
+                  if (isBreak) { if (v !== undefined) num++; }
+                  else { if (v === true) num++; }
                 });
-                const pctVal = den ? Math.round((num / den) * 100) : 0;
+                const pctVal = Math.round((num / 30) * 100);
                 return (
                   <tr key={h.id} className="border-b border-line/50 group">
                     <td className="sticky left-0 bg-panel z-10 px-4 py-2.5">
@@ -160,8 +161,7 @@ export default function Habits() {
                       const future = d > today;
                       let cls = "border-line hover:border-ember/60", txt = "";
                       if (isBreak) {
-                        if (v === true) { cls = "bg-mint border-mint text-ink"; txt = "✓"; }       // тэссэн
-                        else if (v === false) { cls = "bg-red border-red text-ink"; txt = "✕"; }    // автсан
+                        if (v !== undefined) { cls = "bg-red border-red text-ink"; txt = "✕"; }  // автсан
                       } else {
                         if (v === true) { cls = "bg-mint border-mint text-ink shadow-[0_0_10px_rgba(90,209,168,.35)]"; txt = "✓"; }
                       }
@@ -191,7 +191,7 @@ export default function Habits() {
       </Card>
       <p className="text-[11px] text-fog/70 px-1">
         <b className="text-mint">Сайн:</b> хийсэн бол чекл (+{XP_PER_HABIT} XP). &nbsp;
-        <b className="text-red">Хорт:</b> дарж <b className="text-mint">тэссэн ✓</b> → <b className="text-red">автсан ✕</b> → хоосон сэлгэнэ. Тэссэн нь +XP.
+        <b className="text-red">Хорт:</b> тухайн зуршилдаа <b className="text-red">автсан</b> өдрөө чекл (улаан). Хоосон = автаагүй = сайн.
       </p>
     </div>
   );
