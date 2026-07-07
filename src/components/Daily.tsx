@@ -35,7 +35,7 @@ export default function Daily() {
     setHabitScore({
       bt: bh.length, kt: kh.length,
       bd: today.filter((l: any) => bh.some((x: any) => x.id === l.habit_id) && l.done).length,
-      ks: today.filter((l: any) => kh.some((x: any) => x.id === l.habit_id) && !l.done).length,
+      ks: today.filter((l: any) => kh.some((x: any) => x.id === l.habit_id)).length,
     });
     setLoaded(true);
   }
