@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+
+html, body {
+  background: #0A0B10;
+  color: #ECEAE3;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* pre-dawn ambient gradient */
+body {
+  background-image:
+    radial-gradient(1200px 600px at 85% -10%, rgba(255,122,69,0.10), transparent 60%),
+    radial-gradient(900px 500px at 0% 100%, rgba(138,123,242,0.07), transparent 55%);
+  background-attachment: fixed;
+}
+
+::selection { background: rgba(255,122,69,0.35); }
+
+/* thin scrollbar */
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: #262A38; border-radius: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* number tabular */
+.tnum { font-variant-numeric: tabular-nums; }
