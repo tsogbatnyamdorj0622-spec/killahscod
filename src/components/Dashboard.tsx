@@ -63,7 +63,7 @@ export default function Dashboard() {
   const breakHabits = habits.filter((h) => h.kind === "break");
   const todayLogs = hlogs.filter((l) => l.log_date === today);
   const buildDone = todayLogs.filter((l) => buildHabits.some((h) => h.id === l.habit_id) && l.done).length;
-  const breakSlipped = todayLogs.filter((l) => breakHabits.some((h) => h.id === l.habit_id) && !l.done).length;
+  const breakSlipped = todayLogs.filter((l) => breakHabits.some((h) => h.id === l.habit_id)).length;
   const dl = dlogs.find((d) => d.log_date === today);
 
   const inputs: DayInputs = {
@@ -89,7 +89,7 @@ export default function Dashboard() {
   const trend = lastNDays(14).map((d) => {
     const tl = hlogs.filter((l) => l.log_date === d);
     const bd = tl.filter((l) => buildHabits.some((h) => h.id === l.habit_id) && l.done).length;
-    const bs = tl.filter((l) => breakHabits.some((h) => h.id === l.habit_id) && !l.done).length;
+    const bs = tl.filter((l) => breakHabits.some((h) => h.id === l.habit_id)).length;
     const dd = dlogs.find((x) => x.log_date === d);
     const s = dayScore({ buildDone: bd, buildTotal: buildHabits.length, breakSlipped: bs, breakTotal: breakHabits.length, mood: dd?.mood ?? null, sleep: dd?.sleep_hours ?? null, tasksDone: 0, tasksTotal: 0 });
     return { day: shortLabel(d), score: s };
@@ -116,7 +116,7 @@ export default function Dashboard() {
       <Card className="p-6 relative overflow-hidden">
         <Mascot name={vibe.mascot} size={110} className="absolute -right-2 -bottom-3 opacity-90 pointer-events-none" />
         <div className="relative">
-          <div className="grid place-items-center" style={{ width: 180, height: 180 }}>
+          <div className="relative grid place-items-center mx-auto" style={{ width: 180, height: 180 }}>
             <svg width="180" height="180" style={{ transform: "rotate(-90deg)" }}>
               <circle cx="90" cy="90" r="78" stroke="#262A38" strokeWidth="13" fill="none" />
               <circle cx="90" cy="90" r="78" stroke={vibe.color} strokeWidth="13" fill="none" strokeLinecap="round"
