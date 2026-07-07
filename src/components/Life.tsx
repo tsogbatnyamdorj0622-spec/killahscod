@@ -56,7 +56,7 @@ function WorkPane({ userId }: { userId: string | null }) {
   const [loaded, setLoaded] = useState(false);
   const [np, setNp] = useState(""); const [pc, setPc] = useState(PCOLORS[0]);
   const [ti, setTi] = useState<Record<string, string>>({});
-  const [td, setTd] = useState<Record<string, boolean>>({}); // өнөөдөр due эсэх
+  const [tdate, setTdate] = useState<Record<string, string>>({}); // due огноо
 
   async function load() {
     const [p, t] = await Promise.all([
@@ -70,8 +70,8 @@ function WorkPane({ userId }: { userId: string | null }) {
   async function addProject() { if (!userId || !np.trim()) return; await supabase.from("projects").insert({ user_id: userId, name: np.trim(), color: pc }); setNp(""); load(); }
   async function addTask(pid: string) {
     const title = (ti[pid] ?? "").trim(); if (!userId || !title) return;
-    await supabase.from("tasks").insert({ user_id: userId, project_id: pid, title, due_date: td[pid] ? todayStr() : null });
-    setTi((m) => ({ ...m, [pid]: "" })); load();
+    await supabase.from("tasks").insert({ user_id: userId, project_id: pid, title, due_date: tdate[pid] || null });
+    setTi((m) => ({ ...m, [pid]: "" })); setTdate((m) => ({ ...m, [pid]: "" })); load();
   }
   async function toggle(t: Task) { setTasks((a) => a.map((x) => x.id === t.id ? { ...x, done: !x.done } : x)); await supabase.from("tasks").update({ done: !t.done }).eq("id", t.id); }
   async function delTask(id: string) { await supabase.from("tasks").delete().eq("id", id); setTasks((a) => a.filter((x) => x.id !== id)); }
@@ -116,8 +116,8 @@ function WorkPane({ userId }: { userId: string | null }) {
               <div className="flex items-center gap-2">
                 <input value={ti[p.id] ?? ""} onChange={(e) => setTi((m) => ({ ...m, [p.id]: e.target.value }))} onKeyDown={(e) => e.key === "Enter" && addTask(p.id)} placeholder="+ task"
                   className="flex-1 rounded-lg bg-ink border border-line px-3 py-1.5 text-sm text-bone outline-none focus:border-ember" />
-                <button onClick={() => setTd((m) => ({ ...m, [p.id]: !m[p.id] }))} title="Өнөөдөр due"
-                  className={`text-xs px-2 py-1.5 rounded-lg border ${td[p.id] ? "border-ember text-ember" : "border-line text-fog"}`}>📅</button>
+                <input type="date" value={tdate[p.id] ?? ""} onChange={(e) => setTdate((m) => ({ ...m, [p.id]: e.target.value }))} title="Эцсийн огноо"
+                  className={`text-xs px-2 py-1.5 rounded-lg bg-ink border outline-none focus:border-ember [color-scheme:dark] ${tdate[p.id] ? "border-ember text-ember" : "border-line text-fog"}`} />
               </div>
             </Card>
           );
@@ -133,7 +133,7 @@ type Item = { id: string; title: string; status: string; emoji: string; due_date
 function ListPane({ userId, bucket }: { userId: string | null; bucket: Bucket }) {
   const [items, setItems] = useState<Item[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [title, setTitle] = useState(""); const [due, setDue] = useState(false);
+  const [title, setTitle] = useState(""); const [dueDate, setDueDate] = useState("");
   const meta = BUCKETS.find((b) => b.id === bucket)!;
   const sl = STATUS[bucket] ?? STATUS.default;
 
@@ -145,8 +145,8 @@ function ListPane({ userId, bucket }: { userId: string | null; bucket: Bucket })
 
   async function add() {
     if (!userId || !title.trim()) return;
-    await supabase.from("life_items").insert({ user_id: userId, bucket, title: title.trim(), emoji: meta.icon, status: "todo", due_date: due ? todayStr() : null });
-    setTitle(""); setDue(false); load();
+    await supabase.from("life_items").insert({ user_id: userId, bucket, title: title.trim(), emoji: meta.icon, status: "todo", due_date: dueDate || null });
+    setTitle(""); setDueDate(""); load();
   }
   async function cycleStatus(it: Item) {
     const ns = nextStatus(it.status);
@@ -163,7 +163,8 @@ function ListPane({ userId, bucket }: { userId: string | null; bucket: Bucket })
         <div className="flex gap-2 items-center">
           <input value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder={`${meta.icon} ${meta.label}-д нэмэх`}
             className="flex-1 rounded-lg bg-ink border border-line px-3 py-2 text-bone outline-none focus:border-ember" />
-          <button onClick={() => setDue((v) => !v)} title="Өнөөдөр" className={`text-xs px-2.5 py-2 rounded-lg border ${due ? "border-ember text-ember" : "border-line text-fog"}`}>📅</button>
+          <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} title="Эцсийн огноо"
+            className={`text-xs px-2 py-2 rounded-lg bg-ink border outline-none focus:border-ember [color-scheme:dark] ${dueDate ? "border-ember text-ember" : "border-line text-fog"}`} />
           <button onClick={add} className="rounded-lg bg-ember text-ink font-semibold px-4 py-2 hover:brightness-110">+</button>
         </div>
       </Card>
@@ -182,7 +183,7 @@ function ListPane({ userId, bucket }: { userId: string | null; bucket: Bucket })
         })}
         {items.length === 0 && <div className="text-center py-8"><Mascot name="cute" size={60} className="mx-auto mb-2 opacity-80" /><p className="text-fog text-sm">Хоосон байна. Дээрээс нэм.</p></div>}
       </Card>
-      <p className="text-[11px] text-fog/70 px-1">Status дээр дарж <b style={{ color: "#7C8296" }}>{sl.todo}</b> → <b style={{ color: "#F2C14E" }}>{sl.doing}</b> → <b style={{ color: "#5AD1A8" }}>{sl.done}</b> сэлгэнэ. 📅 өнөөдөр гэсэн зүйл Dashboard-д гарна.</p>
+      <p className="text-[11px] text-fog/70 px-1">Status дээр дарж <b style={{ color: "#7C8296" }}>{sl.todo}</b> → <b style={{ color: "#F2C14E" }}>{sl.doing}</b> → <b style={{ color: "#5AD1A8" }}>{sl.done}</b> сэлгэнэ. Огноо тавьсан зүйл тухайн өдөр Dashboard-д автоматаар гарна.</p>
     </div>
   );
 }
