@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/useAuth";
 import { BrandMark } from "@/components/AppShell";
+import Mascot from "@/components/Mascot";
 
 export default function LoginPage() {
   const { session, loading } = useAuth();
@@ -38,7 +39,10 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen grid place-items-center px-4">
       <div className="w-full max-w-sm animate-rise">
-        <div className="flex justify-center mb-8"><BrandMark /></div>
+        <div className="flex flex-col items-center mb-8 gap-4">
+          <Mascot name={mode === "in" ? "hype" : "grind"} size={96} className="animate-rise" />
+          <BrandMark />
+        </div>
 
         <div className="rounded-2xl border border-line bg-panel/60 backdrop-blur p-6">
           <h1 className="font-display text-2xl font-extrabold text-bone">

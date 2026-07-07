@@ -2,77 +2,86 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/useAuth";
-import { lastNDays, shortLabel, todayStr, weekdayMn } from "@/lib/date";
+import { lastNDays, todayStr, weekdayMn } from "@/lib/date";
 import { XP_PER_HABIT } from "@/lib/xp";
-import { Card, SectionTitle } from "./ui";
+import { Card } from "./ui";
+import Mascot from "./Mascot";
 
-type Habit = { id: string; name: string; emoji: string; sort_order: number };
+type Habit = { id: string; name: string; emoji: string; kind: string; sort_order: number };
+type Log = { habit_id: string; log_date: string; done: boolean };
 const DAYS = 14;
-const EMOJIS = ["🔥", "💪", "📖", "🧊", "🎯", "🧘", "🌅", "🚫", "✍️", "🏃", "🧠", "💧"];
+const EMO_BUILD = ["🌅", "💪", "📖", "🎯", "🧘", "🏃", "💧", "🧠", "✍️", "🎹"];
+const EMO_BREAK = ["🚫", "🍬", "🍺", "📵", "🚬", "☕", "🎰", "🍔"];
 
 export default function Habits() {
   const { userId } = useAuth();
   const [habits, setHabits] = useState<Habit[]>([]);
-  const [logs, setLogs] = useState<Set<string>>(new Set()); // "habitId|date"
+  const [logs, setLogs] = useState<Map<string, boolean>>(new Map()); // "hid|date" -> done
   const [loaded, setLoaded] = useState(false);
+  const [tab, setTab] = useState<"all" | "build" | "break">("all");
   const [adding, setAdding] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newEmoji, setNewEmoji] = useState("🔥");
+  const [nk, setNk] = useState<"build" | "break">("build");
+  const [nm, setNm] = useState("");
+  const [ne, setNe] = useState("🌅");
 
   const days = lastNDays(DAYS);
   const today = todayStr();
 
   async function load() {
     const [h, l] = await Promise.all([
-      supabase.from("habits").select("id,name,emoji,sort_order").eq("active", true).order("sort_order"),
-      supabase.from("habit_logs").select("habit_id,log_date").eq("done", true).gte("log_date", days[0]),
+      supabase.from("habits").select("id,name,emoji,kind,sort_order").eq("active", true).order("sort_order"),
+      supabase.from("habit_logs").select("habit_id,log_date,done").gte("log_date", days[0]),
     ]);
     setHabits(h.data ?? []);
-    setLogs(new Set((l.data ?? []).map((r: any) => `${r.habit_id}|${r.log_date}`)));
+    const m = new Map<string, boolean>();
+    (l.data ?? []).forEach((r: Log) => m.set(`${r.habit_id}|${r.log_date}`, r.done));
+    setLogs(m);
     setLoaded(true);
   }
   useEffect(() => { if (userId) load(); }, [userId]);
 
-  async function toggle(habitId: string, date: string) {
-    if (!userId) return;
-    const key = `${habitId}|${date}`;
-    const on = logs.has(key);
-    // optimistic
-    const next = new Set(logs);
-    on ? next.delete(key) : next.add(key);
-    setLogs(next);
-    await addXp(on ? -XP_PER_HABIT : XP_PER_HABIT);
-
-    if (on) {
-      await supabase.from("habit_logs").delete().eq("habit_id", habitId).eq("log_date", date);
-    } else {
-      await supabase.from("habit_logs").upsert(
-        { user_id: userId, habit_id: habitId, log_date: date, done: true },
-        { onConflict: "habit_id,log_date" }
-      );
-    }
+  async function addXp(d: number) {
+    const { data } = await supabase.from("profiles").select("xp").maybeSingle();
+    await supabase.from("profiles").update({ xp: Math.max(0, (data?.xp ?? 0) + d) }).eq("id", userId);
   }
 
-  async function addXp(delta: number) {
-    const { data } = await supabase.from("profiles").select("xp").maybeSingle();
-    const cur = data?.xp ?? 0;
-    await supabase.from("profiles").update({ xp: Math.max(0, cur + delta) }).eq("id", userId);
+  // build: undefined→done→undefined
+  // break: undefined→resisted(true)→slipped(false)→undefined
+  async function cycle(h: Habit, date: string) {
+    if (!userId || date > today) return;
+    const key = `${h.id}|${date}`;
+    const cur = logs.get(key); // undefined | true | false
+    const next = new Map(logs);
+
+    if (h.kind === "build") {
+      if (cur === undefined) { next.set(key, true); await upsert(h.id, date, true); addXp(XP_PER_HABIT); }
+      else { next.delete(key); await del(h.id, date); addXp(-XP_PER_HABIT); }
+    } else {
+      if (cur === undefined) { next.set(key, true); await upsert(h.id, date, true); addXp(XP_PER_HABIT); } // тэссэн = сайн
+      else if (cur === true) { next.set(key, false); await upsert(h.id, date, false); addXp(-XP_PER_HABIT); } // автсан
+      else { next.delete(key); await del(h.id, date); } // тэмдэглээгүй
+    }
+    setLogs(next);
+  }
+  async function upsert(hid: string, date: string, done: boolean) {
+    await supabase.from("habit_logs").upsert({ user_id: userId, habit_id: hid, log_date: date, done }, { onConflict: "habit_id,log_date" });
+  }
+  async function del(hid: string, date: string) {
+    await supabase.from("habit_logs").delete().eq("habit_id", hid).eq("log_date", date);
   }
 
   async function addHabit() {
-    if (!userId || !newName.trim()) return;
-    await supabase.from("habits").insert({
-      user_id: userId, name: newName.trim(), emoji: newEmoji, sort_order: habits.length,
-    });
-    setNewName(""); setNewEmoji("🔥"); setAdding(false); load();
+    if (!userId || !nm.trim()) return;
+    await supabase.from("habits").insert({ user_id: userId, name: nm.trim(), emoji: ne, kind: nk, sort_order: habits.length });
+    setNm(""); setAdding(false); load();
   }
-
   async function removeHabit(id: string) {
-    if (!confirm("Энэ habit-ийг устгах уу? Түүхэн бүртгэл нь бас устна.")) return;
+    if (!confirm("Устгах уу? Түүх нь бас арилна.")) return;
     await supabase.from("habits").delete().eq("id", id);
     load();
   }
 
+  const shown = habits.filter((h) => tab === "all" || h.kind === tab);
   if (!loaded) return <div className="h-40 rounded-2xl bg-panel animate-pulse" />;
 
   return (
@@ -80,87 +89,114 @@ export default function Habits() {
       <header className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl md:text-3xl font-extrabold text-bone">Habits</h1>
-          <p className="text-fog text-sm">Өдөр бүр цохи. Гинжийг бүү таслаа.</p>
+          <p className="text-fog text-sm">Сайныг бос. Муугаа тас.</p>
         </div>
-        <button onClick={() => setAdding((v) => !v)}
-          className="rounded-lg bg-ember text-ink font-semibold px-4 py-2 text-sm hover:brightness-110 transition">
-          {adding ? "Хаах" : "+ Habit"}
-        </button>
+        <button onClick={() => setAdding((v) => !v)} className="rounded-lg bg-ember text-ink font-semibold px-4 py-2 text-sm hover:brightness-110">{adding ? "Хаах" : "+ Нэмэх"}</button>
       </header>
 
       {adding && (
         <Card className="p-4 animate-rise">
+          <div className="seg inline-flex bg-ink border border-line rounded-lg p-1 mb-3">
+            <button onClick={() => { setNk("build"); setNe("🌅"); }} className={`px-4 py-1.5 rounded-md text-sm ${nk === "build" ? "bg-panel2 text-mint" : "text-fog"}`}>🌅 Сайн</button>
+            <button onClick={() => { setNk("break"); setNe("🚫"); }} className={`px-4 py-1.5 rounded-md text-sm ${nk === "break" ? "bg-panel2 text-red" : "text-fog"}`}>☠️ Хорт</button>
+          </div>
           <div className="flex flex-wrap gap-1.5 mb-3">
-            {EMOJIS.map((e) => (
-              <button key={e} onClick={() => setNewEmoji(e)}
-                className={`h-9 w-9 rounded-lg text-lg transition ${newEmoji === e ? "bg-ember/20 ring-1 ring-ember" : "bg-ink hover:bg-panel2"}`}>{e}</button>
+            {(nk === "build" ? EMO_BUILD : EMO_BREAK).map((e) => (
+              <button key={e} onClick={() => setNe(e)} className={`h-9 w-9 rounded-lg text-lg ${ne === e ? "bg-ember/20 ring-1 ring-ember" : "bg-ink hover:bg-panel2"}`}>{e}</button>
             ))}
           </div>
           <div className="flex gap-2">
-            <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Habit нэр (ж: Wake up at 05:00)"
-              onKeyDown={(e) => e.key === "Enter" && addHabit()}
+            <input value={nm} onChange={(e) => setNm(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addHabit()}
+              placeholder={nk === "build" ? "ж: Wake up 05:00" : "ж: No sugar"}
               className="flex-1 rounded-lg bg-ink border border-line px-3 py-2 text-bone outline-none focus:border-ember" />
-            <button onClick={addHabit} className="rounded-lg bg-mint text-ink font-semibold px-4 hover:brightness-110">Нэмэх</button>
+            <button onClick={addHabit} className="rounded-lg bg-mint text-ink font-semibold px-4 hover:brightness-110">OK</button>
           </div>
         </Card>
       )}
 
+      <div className="seg inline-flex bg-ink border border-line rounded-lg p-1">
+        {(["all", "build", "break"] as const).map((t) => (
+          <button key={t} onClick={() => setTab(t)} className={`px-4 py-1.5 rounded-md text-sm ${tab === t ? "bg-panel2 text-bone" : "text-fog"}`}>
+            {t === "all" ? "Бүгд" : t === "build" ? "🌅 Сайн" : "☠️ Хорт"}
+          </button>
+        ))}
+      </div>
+
       <Card className="p-0 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b border-line">
-                <th className="sticky left-0 bg-panel z-10 text-left px-4 py-3 text-[11px] uppercase tracking-wider text-fog font-medium min-w-[160px]">Habit</th>
-                {days.map((d) => (
-                  <th key={d} className={`px-1.5 py-2 text-center min-w-[34px] ${d === today ? "text-ember" : "text-fog"}`}>
-                    <div className="text-[10px]">{weekdayMn(d)}</div>
-                    <div className="text-[11px] font-semibold tnum">{new Date(d + "T00:00:00").getDate()}</div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
+            <thead><tr className="border-b border-line">
+              <th className="sticky left-0 bg-panel z-10 text-left px-4 py-3 text-[11px] uppercase tracking-wider text-fog font-medium min-w-[170px]">Зуршил</th>
+              {days.map((d) => (
+                <th key={d} className={`px-1.5 py-2 min-w-[34px] ${d === today ? "text-ember" : "text-fog"}`}>
+                  <div className="text-[10px]">{weekdayMn(d)}</div>
+                  <div className="text-[11px] font-semibold tnum">{new Date(d + "T00:00:00").getDate()}</div>
+                </th>
+              ))}
+              <th className="px-2 py-2 text-[11px] uppercase text-fog">30х</th>
+            </tr></thead>
             <tbody>
-              {habits.map((h) => {
-                const doneCount = days.filter((d) => logs.has(`${h.id}|${d}`)).length;
+              {shown.map((h) => {
+                const isBreak = h.kind === "break";
+                // 30 хоногийн %: build → хийсэн, break → автсан
+                const all = lastNDays(30);
+                let num = 0, den = 0;
+                all.forEach((d) => {
+                  const v = logsGet(logs, h.id, d);
+                  if (v !== undefined) { den++; if (isBreak ? v === false : v === true) num++; }
+                });
+                const pctVal = den ? Math.round((num / den) * 100) : 0;
                 return (
                   <tr key={h.id} className="border-b border-line/50 group">
                     <td className="sticky left-0 bg-panel z-10 px-4 py-2.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-base">{h.emoji}</span>
-                        <span className="text-sm text-bone truncate">{h.name}</span>
-                        <span className="text-[10px] text-fog tnum ml-auto mr-1">{doneCount}/{DAYS}</span>
-                        <button onClick={() => removeHabit(h.id)}
-                          className="opacity-0 group-hover:opacity-100 text-fog hover:text-ember text-xs transition">✕</button>
+                        <span>{h.emoji}</span><span className="text-sm text-bone truncate">{h.name}</span>
+                        {isBreak && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red/10 text-red border border-red/30 ml-auto">хорт</span>}
+                        <button onClick={() => removeHabit(h.id)} className="opacity-0 group-hover:opacity-100 text-fog hover:text-ember text-xs">✕</button>
                       </div>
                     </td>
                     {days.map((d) => {
-                      const on = logs.has(`${h.id}|${d}`);
+                      const v = logsGet(logs, h.id, d);
                       const future = d > today;
+                      let cls = "border-line hover:border-ember/60", txt = "";
+                      if (isBreak) {
+                        if (v === true) { cls = "bg-mint border-mint text-ink"; txt = "✓"; }       // тэссэн
+                        else if (v === false) { cls = "bg-red border-red text-ink"; txt = "✕"; }    // автсан
+                      } else {
+                        if (v === true) { cls = "bg-mint border-mint text-ink shadow-[0_0_10px_rgba(90,209,168,.35)]"; txt = "✓"; }
+                      }
                       return (
                         <td key={d} className="px-1.5 py-2 text-center">
-                          <button disabled={future} onClick={() => toggle(h.id, d)}
-                            className={`h-6 w-6 rounded-md border transition
-                              ${future ? "border-line/30 cursor-not-allowed" :
-                                on ? "bg-ember border-ember shadow-[0_0_10px_rgba(255,122,69,0.4)]" :
-                                "border-line hover:border-ember/60"}`}>
-                            {on && <span className="text-ink text-xs font-bold">✓</span>}
-                          </button>
+                          <button disabled={future} onClick={() => cycle(h, d)}
+                            className={`h-6 w-6 rounded-md border grid place-items-center text-xs font-bold transition ${future ? "border-line/30 cursor-not-allowed" : cls}`}
+                            style={d === today ? { outline: "1px solid rgba(255,122,69,.4)" } : {}}>{txt}</button>
                         </td>
                       );
                     })}
+                    <td className="px-2 text-center mono text-[11px]" style={{ color: isBreak ? "#F2555A" : "#5AD1A8" }}>
+                      {pctVal}%{isBreak ? " автсан" : ""}
+                    </td>
                   </tr>
                 );
               })}
-              {habits.length === 0 && (
-                <tr><td colSpan={DAYS + 1} className="text-center text-fog py-10">
-                  Habit алга. Дээрээс <span className="text-ember">+ Habit</span> дарж эхэл.
+              {shown.length === 0 && (
+                <tr><td colSpan={DAYS + 2} className="text-center py-10">
+                  <Mascot name="hope" size={70} className="mx-auto mb-2 opacity-80" />
+                  <p className="text-fog text-sm">Зуршил алга. Дээрээс <span className="text-ember">+ Нэмэх</span>.</p>
                 </td></tr>
               )}
             </tbody>
           </table>
         </div>
       </Card>
-      <p className="text-[11px] text-fog/70 px-1">Cell дарах бүрт +{XP_PER_HABIT} XP. Буцаавал хасагдана.</p>
+      <p className="text-[11px] text-fog/70 px-1">
+        <b className="text-mint">Сайн:</b> хийсэн бол чекл (+{XP_PER_HABIT} XP). &nbsp;
+        <b className="text-red">Хорт:</b> дарж <b className="text-mint">тэссэн ✓</b> → <b className="text-red">автсан ✕</b> → хоосон сэлгэнэ. Тэссэн нь +XP.
+      </p>
     </div>
   );
+}
+
+function logsGet(m: Map<string, boolean>, hid: string, date: string): boolean | undefined {
+  return m.get(`${hid}|${date}`);
 }

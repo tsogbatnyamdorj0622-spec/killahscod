@@ -4,12 +4,13 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/useAuth";
 import { supabase } from "@/lib/supabase";
+import Mascot from "./Mascot";
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: "◎" },
   { href: "/habits", label: "Habits", icon: "✓" },
-  { href: "/mood", label: "Mood", icon: "◐" },
-  { href: "/projects", label: "Projects", icon: "▲" },
+  { href: "/life", label: "Life", icon: "▲" },
+  { href: "/daily", label: "Бүртгэл", icon: "◐" },
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -24,7 +25,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="min-h-screen grid place-items-center">
-        <div className="h-10 w-10 rounded-full border-2 border-line border-t-ember animate-spin" />
+        <div className="flex flex-col items-center gap-3">
+          <Mascot name="grind" size={64} className="animate-glow" />
+          <div className="h-1 w-24 rounded-full bg-line overflow-hidden">
+            <div className="h-full w-1/3 bg-ember animate-pulse" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -32,7 +38,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen pb-24 md:pb-0 md:pl-56">
-      {/* desktop sidebar */}
       <aside className="hidden md:flex fixed left-0 top-0 h-screen w-56 flex-col border-r border-line bg-panel/40 backdrop-blur px-4 py-6">
         <BrandMark />
         <nav className="mt-8 flex flex-col gap-1">
@@ -45,14 +50,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
         <button onClick={() => supabase.auth.signOut()}
-          className="mt-auto text-left text-xs text-fog hover:text-ember px-3 py-2">
-          Гарах →
-        </button>
+          className="mt-auto text-left text-xs text-fog hover:text-ember px-3 py-2">Гарах →</button>
       </aside>
 
       <main className="mx-auto max-w-5xl px-4 py-6 md:px-8 md:py-10">{children}</main>
 
-      {/* mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-20 border-t border-line bg-ink/90 backdrop-blur flex">
         {NAV.map((n) => (
           <Link key={n.href} href={n.href}
@@ -69,13 +71,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 export function BrandMark() {
   return (
     <div className="flex items-center gap-2.5">
-      <div className="relative h-8 w-8 rounded-lg bg-gradient-to-br from-ember to-emberdim grid place-items-center">
-        <span className="font-display font-extrabold text-ink text-sm">K</span>
-        <div className="absolute inset-0 rounded-lg animate-glow shadow-[0_0_20px_rgba(255,122,69,0.5)]" />
-      </div>
+      <Mascot name="boss" size={34} />
       <div className="leading-none">
         <div className="font-display font-extrabold tracking-tight text-bone">KILLAH</div>
-        <div className="text-[10px] text-fog tracking-[0.2em] uppercase">grind ledger</div>
+        <div className="text-[10px] text-fog tracking-[0.2em] uppercase">by ongod 👽</div>
       </div>
     </div>
   );

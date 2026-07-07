@@ -1,15 +1,18 @@
 "use client";
 import { useEffect, useState } from "react";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/useAuth";
-import { lastNDays, shortLabel, todayStr, weekdayMn } from "@/lib/date";
-import { levelFromXp, rankFor, xpForLevel } from "@/lib/xp";
-import { Card, SectionTitle, StatTile, SunriseRing } from "./ui";
+import { lastNDays, shortLabel, todayStr } from "@/lib/date";
+import { levelFromXp, rankFor } from "@/lib/xp";
+import { dayScore, scoreVibe, DayInputs } from "@/lib/score";
+import { Card } from "./ui";
+import Mascot from "./Mascot";
 
-type Habit = { id: string; name: string; emoji: string };
+type Habit = { id: string; kind: string };
 type HLog = { habit_id: string; log_date: string; done: boolean };
-type DLog = { log_date: string; mood: number | null; sleep_hours: number | null; energy: number | null };
+type DLog = { log_date: string; mood: number | null; sleep_hours: number | null };
+type Task = { done: boolean; due_date: string | null };
 
 export default function Dashboard() {
   const { userId } = useAuth();
@@ -17,175 +20,204 @@ export default function Dashboard() {
   const [hlogs, setHlogs] = useState<HLog[]>([]);
   const [dlogs, setDlogs] = useState<DLog[]>([]);
   const [xp, setXp] = useState(0);
+  const [tasksToday, setTasksToday] = useState<{ done: number; total: number }>({ done: 0, total: 0 });
+  const [todoList, setTodoList] = useState<{ title: string; tag: string; color: string; done: boolean }[]>([]);
   const [loaded, setLoaded] = useState(false);
+
+  const today = todayStr();
 
   useEffect(() => {
     if (!userId) return;
     (async () => {
       const from = lastNDays(30)[0];
-      const [h, hl, dl, p] = await Promise.all([
-        supabase.from("habits").select("id,name,emoji").eq("active", true).order("sort_order"),
+      const [h, hl, dl, p, tk, li] = await Promise.all([
+        supabase.from("habits").select("id,kind").eq("active", true),
         supabase.from("habit_logs").select("habit_id,log_date,done").gte("log_date", from),
-        supabase.from("daily_logs").select("log_date,mood,sleep_hours,energy").gte("log_date", lastNDays(14)[0]),
+        supabase.from("daily_logs").select("log_date,mood,sleep_hours").gte("log_date", lastNDays(14)[0]),
         supabase.from("profiles").select("xp").maybeSingle(),
+        supabase.from("tasks").select("title,done,due_date,project_id").eq("due_date", today),
+        supabase.from("life_items").select("title,bucket,status,due_date").eq("due_date", today),
       ]);
       setHabits(h.data ?? []);
       setHlogs(hl.data ?? []);
       setDlogs(dl.data ?? []);
       setXp(p.data?.xp ?? 0);
+
+      const tasks = (tk.data ?? []) as any[];
+      const lifes = (li.data ?? []) as any[];
+      const total = tasks.length + lifes.length;
+      const done = tasks.filter((t) => t.done).length + lifes.filter((l) => l.status === "done").length;
+      setTasksToday({ done, total });
+
+      const list = [
+        ...tasks.map((t) => ({ title: t.title, tag: "Ажил", color: "#FF7A45", done: t.done })),
+        ...lifes.map((l) => ({ title: l.title, tag: bucketLabel(l.bucket), color: bucketColor(l.bucket), done: l.status === "done" })),
+      ].slice(0, 6);
+      setTodoList(list);
       setLoaded(true);
     })();
   }, [userId]);
 
-  const today = todayStr();
-  const doneToday = hlogs.filter((l) => l.log_date === today && l.done).length;
-  const todayPct = habits.length ? doneToday / habits.length : 0;
+  // ---- өнөөдрийн day score ----
+  const buildHabits = habits.filter((h) => h.kind === "build");
+  const breakHabits = habits.filter((h) => h.kind === "break");
+  const todayLogs = hlogs.filter((l) => l.log_date === today);
+  const buildDone = todayLogs.filter((l) => buildHabits.some((h) => h.id === l.habit_id) && l.done).length;
+  const breakSlipped = todayLogs.filter((l) => breakHabits.some((h) => h.id === l.habit_id) && !l.done).length;
+  const dl = dlogs.find((d) => d.log_date === today);
 
-  // streak: өнөөдрөөс ухарч, тухайн өдөр дор хаяж нэг habit хийсэн бол үргэлжилнэ.
-  // Өнөөдөр хараахан хийгээгүй бол streak-ийг тасалдаггүй (өдөр дуусаагүй).
-  const daySet = new Set(hlogs.filter((l) => l.done).map((l) => l.log_date));
+  const inputs: DayInputs = {
+    buildDone, buildTotal: buildHabits.length,
+    breakSlipped, breakTotal: breakHabits.length,
+    mood: dl?.mood ?? null, sleep: dl?.sleep_hours ?? null,
+    tasksDone: tasksToday.done, tasksTotal: tasksToday.total,
+  };
+  const score = dayScore(inputs);
+  const vibe = scoreVibe(score);
+
+  // streak
+  const daySet = new Set(hlogs.filter((l) => l.done && buildHabits.some((h) => h.id === l.habit_id)).map((l) => l.log_date));
   let streak = 0;
-  const daysDesc = lastNDays(60).reverse(); // шинэ → хуучин
-  for (const d of daysDesc) {
+  for (const d of lastNDays(60).reverse()) {
     if (d === today && !daySet.has(d)) continue;
-    if (daySet.has(d)) streak++;
-    else break;
+    if (daySet.has(d)) streak++; else break;
   }
 
   const lvl = levelFromXp(xp);
-  const rank = rankFor(lvl.level);
 
-  // 14 хоногийн mood + sleep
-  const dlMap = new Map(dlogs.map((d) => [d.log_date, d]));
-  const moodData = lastNDays(14).map((d) => {
-    const r = dlMap.get(d);
-    return { day: shortLabel(d), wd: weekdayMn(d), mood: r?.mood ?? null, sleep: r?.sleep_hours ?? null };
+  // 14 хоногийн day score тренд
+  const trend = lastNDays(14).map((d) => {
+    const tl = hlogs.filter((l) => l.log_date === d);
+    const bd = tl.filter((l) => buildHabits.some((h) => h.id === l.habit_id) && l.done).length;
+    const bs = tl.filter((l) => breakHabits.some((h) => h.id === l.habit_id) && !l.done).length;
+    const dd = dlogs.find((x) => x.log_date === d);
+    const s = dayScore({ buildDone: bd, buildTotal: buildHabits.length, breakSlipped: bs, breakTotal: breakHabits.length, mood: dd?.mood ?? null, sleep: dd?.sleep_hours ?? null, tasksDone: 0, tasksTotal: 0 });
+    return { day: shortLabel(d), score: s };
   });
-
-  // 30 хоногийн habit completion %
-  const compData = lastNDays(30).map((d) => {
-    const done = hlogs.filter((l) => l.log_date === d && l.done).length;
-    return { day: shortLabel(d), pct: habits.length ? Math.round((done / habits.length) * 100) : 0 };
-  });
-
-  // wellness score: habit 30d дундаж %, mood avg, sleep avg-ийг нэгтгэсэн 0-100
-  const avgComp = compData.reduce((s, x) => s + x.pct, 0) / (compData.length || 1);
-  const moods = moodData.filter((m) => m.mood != null).map((m) => m.mood as number);
-  const sleeps = moodData.filter((m) => m.sleep != null).map((m) => m.sleep as number);
-  const avgMood = moods.length ? moods.reduce((a, b) => a + b, 0) / moods.length : 0;
-  const avgSleep = sleeps.length ? sleeps.reduce((a, b) => a + b, 0) / sleeps.length : 0;
-  const sleepScore = avgSleep ? Math.max(0, 100 - Math.abs(7.5 - avgSleep) * 18) : 0;
-  const wellness = Math.round(avgComp * 0.5 + (avgMood / 5) * 100 * 0.3 + sleepScore * 0.2);
 
   const hour = new Date().getHours();
-  const greet = hour < 5 ? "Шөнө дунд ажиллаж байна уу" : hour < 12 ? "Өглөөний grind" : hour < 18 ? "Өдрийн track" : "Өдрийн дүн";
+  const greet = hour < 5 ? "Шөнө дунд" : hour < 12 ? "Өглөөний grind" : hour < 18 ? "Өдрийн track" : "Өдрийн дүн";
+
+  const pct = (n: number) => `${Math.round(n * 100)}%`;
+  const bTotal = buildHabits.length, kTotal = breakHabits.length;
 
   if (!loaded) return <Skeleton />;
 
   return (
-    <div className="space-y-6 animate-rise">
-      <header className="flex items-end justify-between">
+    <div className="space-y-5 animate-rise">
+      <div className="flex items-end justify-between">
         <div>
-          <div className="text-fog text-sm">{greet}</div>
-          <h1 className="font-display text-2xl md:text-3xl font-extrabold text-bone">Өнөөдрийн ledger</h1>
+          <div className="tag text-fog text-[11px] uppercase tracking-widest">{greet}</div>
+          <h1 className="font-display text-2xl md:text-3xl font-extrabold text-bone">Өнөөдөр хэр дажгүй вэ?</h1>
         </div>
-        <div className="text-right">
-          <div className="text-[11px] uppercase tracking-wider text-fog">Rank</div>
-          <div className="font-display font-extrabold text-gold">{rank}</div>
-        </div>
-      </header>
-
-      {/* top: ring + level */}
-      <div className="grid md:grid-cols-3 gap-4">
-        <Card className="p-6 flex flex-col items-center justify-center">
-          <SunriseRing pct={todayPct} label="өнөөдөр" />
-          <div className="text-sm text-fog mt-3">
-            <span className="text-bone font-semibold tnum">{doneToday}</span> / {habits.length} habit
-          </div>
-        </Card>
-
-        <Card className="p-6 md:col-span-2 flex flex-col justify-center">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <div className="text-[11px] uppercase tracking-wider text-fog">Level</div>
-              <div className="font-display text-4xl font-extrabold text-gold tnum">{lvl.level}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-[11px] uppercase tracking-wider text-fog">Streak</div>
-              <div className="font-display text-4xl font-extrabold text-ember tnum">{streak}🔥</div>
-            </div>
-            <div className="text-right hidden sm:block">
-              <div className="text-[11px] uppercase tracking-wider text-fog">Wellness</div>
-              <div className="font-display text-4xl font-extrabold text-mint tnum">{wellness}</div>
-            </div>
-          </div>
-          <div className="h-2.5 rounded-full bg-ink overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-gold to-ember transition-all duration-700"
-              style={{ width: `${lvl.pct * 100}%` }} />
-          </div>
-          <div className="flex justify-between text-[11px] text-fog mt-1.5 tnum">
-            <span>{xp} XP</span>
-            <span>{lvl.into}/{lvl.span} → Lvl {lvl.level + 1}</span>
-          </div>
-        </Card>
       </div>
 
-      {/* mood + sleep */}
+      {/* DAY SCORE + mascot */}
+      <Card className="p-6 relative overflow-hidden">
+        <Mascot name={vibe.mascot} size={110} className="absolute -right-2 -bottom-3 opacity-90 pointer-events-none" />
+        <div className="relative">
+          <div className="grid place-items-center" style={{ width: 180, height: 180 }}>
+            <svg width="180" height="180" style={{ transform: "rotate(-90deg)" }}>
+              <circle cx="90" cy="90" r="78" stroke="#262A38" strokeWidth="13" fill="none" />
+              <circle cx="90" cy="90" r="78" stroke={vibe.color} strokeWidth="13" fill="none" strokeLinecap="round"
+                strokeDasharray={490} strokeDashoffset={490 * (1 - score / 100)}
+                style={{ transition: "stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1)" }} />
+            </svg>
+            <div className="absolute text-center">
+              <div className="font-display font-extrabold tnum" style={{ fontSize: 52, lineHeight: 1, color: vibe.color }}>{score}</div>
+              <div className="text-[10px] text-fog uppercase tracking-widest mt-1">day score</div>
+            </div>
+          </div>
+          <div className="font-display text-xl font-extrabold mt-2" style={{ color: vibe.color }}>{vibe.word}</div>
+          <div className="hint text-xs text-fog mt-1">
+            {score === 0 ? "Бүртгэл хоосон. Доороос эхэл." : streak > 0 ? `${streak} өдрийн gin. Бүү тас.` : "Шинэ gin эхэлж байна."}
+          </div>
+        </div>
+      </Card>
+
+      {/* breakdown */}
       <Card className="p-5">
-        <SectionTitle right={<div className="flex gap-3 text-[11px]">
-          <span className="flex items-center gap-1 text-mint">● Mood</span>
-          <span className="flex items-center gap-1 text-violet">● Нойр</span>
-        </div>}>Сүүлийн 14 хоног</SectionTitle>
-        <div className="h-52">
+        <div className="text-[11px] uppercase tracking-widest text-fog mb-3">Юунаас бүрдэв</div>
+        <div className="flex flex-col gap-3">
+          <BreakBar label="🌅 Сайн зуршил хийсэн" val={bTotal ? buildDone / bTotal : 0} right={`${buildDone}/${bTotal}`} color="#5AD1A8" />
+          <BreakBar label="☠️ Хорт зуршилд автсан" hint="бага нь дээр" val={kTotal ? breakSlipped / kTotal : 0} right={`${breakSlipped}/${kTotal}`} color="#F2555A" />
+          {dl?.mood != null && <BreakBar label="😊 Mood" val={dl.mood / 5} right={`${dl.mood}/5`} color="#F2C14E" />}
+          {dl?.sleep_hours != null && <BreakBar label="😴 Нойр" val={Math.max(0, 1 - Math.abs(7.5 - dl.sleep_hours) / 5)} right={`${dl.sleep_hours}ц`} color="#8A7BF2" />}
+          {tasksToday.total > 0 && <BreakBar label="✅ Өдрийн ажил" val={tasksToday.done / tasksToday.total} right={`${tasksToday.done}/${tasksToday.total}`} color="#FF7A45" />}
+        </div>
+      </Card>
+
+      {/* streak + xp */}
+      <Card className="p-5">
+        <div className="flex justify-between items-center">
+          <div><div className="text-[11px] uppercase tracking-widest text-fog">Streak</div><div className="font-display text-2xl font-extrabold text-ember tnum">{streak}🔥</div></div>
+          <div className="text-right"><div className="text-[11px] uppercase tracking-widest text-fog">Level {lvl.level} · {rankFor(lvl.level)}</div><div className="text-xs text-fog tnum mono">{xp} / {xp - lvl.into + lvl.span} XP</div></div>
+        </div>
+        <div className="h-2.5 rounded-full bg-ink overflow-hidden mt-3">
+          <div className="h-full bg-gradient-to-r from-gold to-ember transition-all duration-700" style={{ width: `${lvl.pct * 100}%` }} />
+        </div>
+      </Card>
+
+      {/* trend */}
+      <Card className="p-5">
+        <div className="text-[11px] uppercase tracking-widest text-fog mb-2">Сүүлийн 14 хоногийн Day Score</div>
+        <div className="h-40">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={moodData} margin={{ top: 6, right: 6, left: -20, bottom: 0 }}>
+            <LineChart data={trend} margin={{ top: 6, right: 6, left: -22, bottom: 0 }}>
               <CartesianGrid stroke="#262A38" strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="day" tick={{ fill: "#7C8296", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis yAxisId="l" domain={[0, 5]} tick={{ fill: "#7C8296", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis yAxisId="r" orientation="right" domain={[0, 12]} hide />
+              <XAxis dataKey="day" tick={{ fill: "#7C8296", fontSize: 10 }} axisLine={false} tickLine={false} interval={2} />
+              <YAxis domain={[0, 100]} tick={{ fill: "#7C8296", fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={{ background: "#14161F", border: "1px solid #262A38", borderRadius: 12, color: "#ECEAE3" }} />
-              <Line yAxisId="l" dataKey="mood" stroke="#5AD1A8" strokeWidth={2.5} dot={{ r: 3, fill: "#5AD1A8" }} connectNulls name="Mood" />
-              <Line yAxisId="r" dataKey="sleep" stroke="#8A7BF2" strokeWidth={2.5} dot={{ r: 3, fill: "#8A7BF2" }} connectNulls name="Нойр" />
+              <Line dataKey="score" stroke="#FF7A45" strokeWidth={2.5} dot={{ r: 3, fill: "#FF7A45" }} connectNulls />
             </LineChart>
           </ResponsiveContainer>
         </div>
       </Card>
 
-      {/* 30-day completion */}
+      {/* today's plan */}
       <Card className="p-5">
-        <SectionTitle>Өдөр тутмын гүйцэтгэл · 30 хоног</SectionTitle>
-        <div className="h-44">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={compData} margin={{ top: 6, right: 6, left: -24, bottom: 0 }}>
-              <CartesianGrid stroke="#262A38" strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="day" tick={{ fill: "#7C8296", fontSize: 10 }} axisLine={false} tickLine={false} interval={4} />
-              <YAxis domain={[0, 100]} tick={{ fill: "#7C8296", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip cursor={{ fill: "rgba(255,122,69,0.08)" }}
-                contentStyle={{ background: "#14161F", border: "1px solid #262A38", borderRadius: 12, color: "#ECEAE3" }} />
-              <Bar dataKey="pct" fill="#FF7A45" radius={[3, 3, 0, 0]} name="%" />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="flex justify-between items-baseline mb-1">
+          <div className="text-[11px] uppercase tracking-widest text-fog">Өнөөдрийн төлөвлөгөө · Life-аас</div>
+          <div className="text-xs text-fog tnum mono">{tasksToday.done}/{tasksToday.total}</div>
         </div>
+        {todoList.length === 0 && <p className="text-sm text-fog py-3">Өнөөдөрт товлосон зүйл алга. <a href="/life" className="text-ember">Life</a>-аас нэм.</p>}
+        {todoList.map((t, i) => (
+          <div key={i} className="flex items-center gap-3 py-2 border-b border-line/40 last:border-0">
+            <div className={`h-5 w-5 rounded-md border grid place-items-center text-[11px] ${t.done ? "bg-mint border-mint text-ink" : "border-line"}`}>{t.done ? "✓" : ""}</div>
+            <span className={`flex-1 text-sm ${t.done ? "text-fog line-through" : "text-bone"}`}>{t.title}</span>
+            <span className="text-[11px] px-2 py-1 rounded-full border border-line" style={{ color: t.color }}>{t.tag}</span>
+          </div>
+        ))}
       </Card>
-
-      {habits.length === 0 && (
-        <Card className="p-6 text-center">
-          <p className="text-fog">Habit алга байна. <a href="/habits" className="text-ember">Habits</a> хэсгээс нэм.</p>
-        </Card>
-      )}
     </div>
   );
+}
+
+function BreakBar({ label, val, right, color, hint }: { label: string; val: number; right: string; color: string; hint?: string }) {
+  return (
+    <div>
+      <div className="flex justify-between text-[13px] mb-1">
+        <span>{label} {hint && <span className="text-[11px] text-fog">({hint})</span>}</span>
+        <span className="mono tnum" style={{ color }}>{right}</span>
+      </div>
+      <div className="h-2 rounded-full bg-ink overflow-hidden"><div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.round(val * 100)}%`, background: color }} /></div>
+    </div>
+  );
+}
+
+function bucketLabel(b: string) {
+  return { family: "Гэр бүл", money: "Санхүү", skill: "Ур чадвар", read: "Ном", watch: "Кино" }[b] ?? b;
+}
+function bucketColor(b: string) {
+  return { family: "#8A7BF2", money: "#5AD1A8", skill: "#F2C14E", read: "#5AD1A8", watch: "#FF7A45" }[b] ?? "#7C8296";
 }
 
 function Skeleton() {
   return (
     <div className="space-y-4">
-      <div className="h-8 w-48 rounded bg-panel animate-pulse" />
-      <div className="grid md:grid-cols-3 gap-4">
-        <div className="h-48 rounded-2xl bg-panel animate-pulse" />
-        <div className="h-48 rounded-2xl bg-panel animate-pulse md:col-span-2" />
-      </div>
-      <div className="h-56 rounded-2xl bg-panel animate-pulse" />
+      <div className="h-8 w-56 rounded bg-panel animate-pulse" />
+      <div className="h-64 rounded-2xl bg-panel animate-pulse" />
+      <div className="h-40 rounded-2xl bg-panel animate-pulse" />
     </div>
   );
 }
