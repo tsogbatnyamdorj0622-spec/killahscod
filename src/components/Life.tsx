@@ -5,21 +5,22 @@ import { useAuth } from "@/lib/useAuth";
 import { todayStr } from "@/lib/date";
 import { Card } from "./ui";
 import Mascot from "./Mascot";
+import { COPY } from "@/lib/copy";
 
 type Bucket = "work" | "family" | "money" | "skill" | "read" | "watch";
 const BUCKETS: { id: Bucket; label: string; icon: string; color: string }[] = [
-  { id: "work", label: "Ажил", icon: "💼", color: "#FF7A45" },
-  { id: "family", label: "Гэр бүл", icon: "👨‍👩‍👧", color: "#8A7BF2" },
-  { id: "money", label: "Санхүү", icon: "💰", color: "#5AD1A8" },
-  { id: "skill", label: "Ур чадвар", icon: "🧠", color: "#F2C14E" },
-  { id: "read", label: "Ном", icon: "📖", color: "#5AD1A8" },
-  { id: "watch", label: "Кино", icon: "🎬", color: "#FF7A45" },
+  { id: "work", label: COPY.life.buckets.work, icon: "💼", color: "#FF7A45" },
+  { id: "family", label: COPY.life.buckets.family, icon: "👨‍👩‍👧", color: "#8A7BF2" },
+  { id: "money", label: COPY.life.buckets.money, icon: "💰", color: "#5AD1A8" },
+  { id: "skill", label: COPY.life.buckets.skill, icon: "🧠", color: "#F2C14E" },
+  { id: "read", label: COPY.life.buckets.read, icon: "📖", color: "#5AD1A8" },
+  { id: "watch", label: COPY.life.buckets.watch, icon: "🎬", color: "#FF7A45" },
 ];
 // status label bucket бүрээр
 const STATUS: Record<string, { todo: string; doing: string; done: string }> = {
-  default: { todo: "Хийх", doing: "Явцтай", done: "Дууссан" },
-  read: { todo: "Хүсэлтэй", doing: "Уншиж байна", done: "Уншсан" },
-  watch: { todo: "Үзэх", doing: "Үзэж байна", done: "Үзсэн" },
+  default: COPY.life.statusDefault,
+  read: COPY.life.statusRead,
+  watch: COPY.life.statusWatch,
 };
 const nextStatus = (s: string) => (s === "todo" ? "doing" : s === "doing" ? "done" : "todo");
 
@@ -29,8 +30,8 @@ export default function Life() {
   return (
     <div className="space-y-4 animate-rise">
       <div>
-        <h1 className="font-display text-2xl md:text-3xl font-extrabold text-bone">Life</h1>
-        <p className="text-fog text-sm">Зөвхөн ажил биш. Бүх амьдрал нэг дор.</p>
+        <h1 className="font-display text-2xl md:text-3xl font-extrabold text-bone">{COPY.life.title}</h1>
+        <p className="text-fog text-sm">{COPY.life.subtitle}</p>
       </div>
       <div className="flex gap-2 overflow-x-auto pb-1">
         {BUCKETS.map((b) => (
@@ -74,8 +75,13 @@ function WorkPane({ userId }: { userId: string | null }) {
     setTi((m) => ({ ...m, [pid]: "" })); setTdate((m) => ({ ...m, [pid]: "" })); load();
   }
   async function toggle(t: Task) { setTasks((a) => a.map((x) => x.id === t.id ? { ...x, done: !x.done } : x)); await supabase.from("tasks").update({ done: !t.done }).eq("id", t.id); }
+  async function setTaskDue(t: Task, d: string) {
+    const v = d || null;
+    setTasks((a) => a.map((x) => x.id === t.id ? { ...x, due_date: v } : x));
+    await supabase.from("tasks").update({ due_date: v }).eq("id", t.id);
+  }
   async function delTask(id: string) { await supabase.from("tasks").delete().eq("id", id); setTasks((a) => a.filter((x) => x.id !== id)); }
-  async function archive(id: string) { if (!confirm("Архивлах уу?")) return; await supabase.from("projects").update({ archived: true }).eq("id", id); load(); }
+  async function archive(id: string) { if (!confirm(COPY.life.confirmArchive)) return; await supabase.from("projects").update({ archived: true }).eq("id", id); load(); }
 
   if (!loaded) return <div className="h-32 rounded-2xl bg-panel animate-pulse" />;
   return (
@@ -83,9 +89,9 @@ function WorkPane({ userId }: { userId: string | null }) {
       <Card className="p-4">
         <div className="flex flex-wrap gap-2 items-center">
           <div className="flex gap-1.5">{PCOLORS.map((c) => (<button key={c} onClick={() => setPc(c)} className={`h-6 w-6 rounded-full ${pc === c ? "ring-2 ring-offset-2 ring-offset-panel ring-bone" : ""}`} style={{ background: c }} />))}</div>
-          <input value={np} onChange={(e) => setNp(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addProject()} placeholder="Шинэ project"
+          <input value={np} onChange={(e) => setNp(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addProject()} placeholder={COPY.life.newProject}
             className="flex-1 min-w-[150px] rounded-lg bg-ink border border-line px-3 py-2 text-bone outline-none focus:border-ember" />
-          <button onClick={addProject} className="rounded-lg bg-ember text-ink font-semibold px-4 py-2 hover:brightness-110">+ Project</button>
+          <button onClick={addProject} className="rounded-lg bg-ember text-ink font-semibold px-4 py-2 hover:brightness-110">{COPY.life.addProjectBtn}</button>
         </div>
       </Card>
       <div className="grid md:grid-cols-2 gap-4">
@@ -107,14 +113,15 @@ function WorkPane({ userId }: { userId: string | null }) {
                   <div key={t.id} className="flex items-center gap-2 group">
                     <button onClick={() => toggle(t)} className={`h-5 w-5 rounded border shrink-0 grid place-items-center text-xs ${t.done ? "bg-mint border-mint text-ink" : "border-line hover:border-mint"}`}>{t.done ? "✓" : ""}</button>
                     <span className={`text-sm flex-1 ${t.done ? "text-fog line-through" : "text-bone"}`}>{t.title}</span>
-                    {t.due_date === todayStr() && <span className="text-[10px] text-ember">өнөөдөр</span>}
+                    <input type="date" value={t.due_date ?? ""} onChange={(e) => setTaskDue(t, e.target.value)} title="Огноо солих"
+                      className={`text-[10px] px-1.5 py-0.5 rounded-md bg-ink border outline-none focus:border-ember [color-scheme:dark] ${t.due_date === todayStr() ? "border-ember/60 text-ember" : t.due_date ? "border-line text-fog" : "border-line/40 text-fog/50"}`} />
                     <button onClick={() => delTask(t.id)} className="opacity-0 group-hover:opacity-100 text-fog hover:text-ember text-xs">✕</button>
                   </div>
                 ))}
-                {pt.length === 0 && <p className="text-xs text-fog">Task алга.</p>}
+                {pt.length === 0 && <p className="text-xs text-fog">{COPY.life.noTasks}</p>}
               </div>
               <div className="flex items-center gap-2">
-                <input value={ti[p.id] ?? ""} onChange={(e) => setTi((m) => ({ ...m, [p.id]: e.target.value }))} onKeyDown={(e) => e.key === "Enter" && addTask(p.id)} placeholder="+ task"
+                <input value={ti[p.id] ?? ""} onChange={(e) => setTi((m) => ({ ...m, [p.id]: e.target.value }))} onKeyDown={(e) => e.key === "Enter" && addTask(p.id)} placeholder={COPY.life.addTaskPlaceholder}
                   className="flex-1 rounded-lg bg-ink border border-line px-3 py-1.5 text-sm text-bone outline-none focus:border-ember" />
                 <input type="date" value={tdate[p.id] ?? ""} onChange={(e) => setTdate((m) => ({ ...m, [p.id]: e.target.value }))} title="Эцсийн огноо"
                   className={`text-xs px-2 py-1.5 rounded-lg bg-ink border outline-none focus:border-ember [color-scheme:dark] ${tdate[p.id] ? "border-ember text-ember" : "border-line text-fog"}`} />
@@ -122,7 +129,7 @@ function WorkPane({ userId }: { userId: string | null }) {
             </Card>
           );
         })}
-        {projects.length === 0 && <Card className="p-8 text-center md:col-span-2"><Mascot name="hope" size={64} className="mx-auto mb-2 opacity-80" /><p className="text-fog">Project алга. Дээрээс нэг үүсгэ.</p></Card>}
+        {projects.length === 0 && <Card className="p-8 text-center md:col-span-2"><Mascot name="hope" size={64} className="mx-auto mb-2 opacity-80" /><p className="text-fog">{COPY.life.noProjects}</p></Card>}
       </div>
     </div>
   );
@@ -154,6 +161,11 @@ function ListPane({ userId, bucket }: { userId: string | null; bucket: Bucket })
     await supabase.from("life_items").update({ status: ns }).eq("id", it.id);
   }
   async function del(id: string) { await supabase.from("life_items").delete().eq("id", id); setItems((a) => a.filter((x) => x.id !== id)); }
+  async function setItemDue(it: Item, d: string) {
+    const v = d || null;
+    setItems((a) => a.map((x) => x.id === it.id ? { ...x, due_date: v } : x));
+    await supabase.from("life_items").update({ due_date: v }).eq("id", it.id);
+  }
 
   const badge = (s: string) => s === "done" ? { t: sl.done, c: "#5AD1A8" } : s === "doing" ? { t: sl.doing, c: "#F2C14E" } : { t: sl.todo, c: "#7C8296" };
   if (!loaded) return <div className="h-32 rounded-2xl bg-panel animate-pulse" />;
@@ -161,7 +173,7 @@ function ListPane({ userId, bucket }: { userId: string | null; bucket: Bucket })
     <div className="space-y-4">
       <Card className="p-4">
         <div className="flex gap-2 items-center">
-          <input value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder={`${meta.icon} ${meta.label}-д нэмэх`}
+          <input value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder={COPY.life.addToBucket(meta.icon, meta.label)}
             className="flex-1 rounded-lg bg-ink border border-line px-3 py-2 text-bone outline-none focus:border-ember" />
           <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} title="Эцсийн огноо"
             className={`text-xs px-2 py-2 rounded-lg bg-ink border outline-none focus:border-ember [color-scheme:dark] ${dueDate ? "border-ember text-ember" : "border-line text-fog"}`} />
@@ -175,15 +187,16 @@ function ListPane({ userId, bucket }: { userId: string | null; bucket: Bucket })
             <div key={it.id} className="flex items-center gap-3 px-3 py-3 border-b border-line/40 last:border-0 group">
               <span className="text-lg">{it.emoji}</span>
               <div className="flex-1"><div className={`text-sm ${it.status === "done" ? "text-fog" : "text-bone"}`}>{it.title}</div>
-                {it.due_date === todayStr() && <div className="text-[10px] text-ember">өнөөдөр</div>}</div>
+                <input type="date" value={it.due_date ?? ""} onChange={(e) => setItemDue(it, e.target.value)} title="Огноо солих"
+                  className={`text-[10px] px-1.5 py-0.5 rounded-md bg-ink border outline-none focus:border-ember [color-scheme:dark] mt-0.5 ${it.due_date === todayStr() ? "border-ember/60 text-ember" : it.due_date ? "border-line text-fog" : "border-line/40 text-fog/50"}`} /></div>
               <button onClick={() => cycleStatus(it)} className="text-[11px] px-2.5 py-1 rounded-full border" style={{ color: b.c, borderColor: b.c + "55" }}>{b.t}</button>
               <button onClick={() => del(it.id)} className="opacity-0 group-hover:opacity-100 text-fog hover:text-ember text-xs">✕</button>
             </div>
           );
         })}
-        {items.length === 0 && <div className="text-center py-8"><Mascot name="cute" size={60} className="mx-auto mb-2 opacity-80" /><p className="text-fog text-sm">Хоосон байна. Дээрээс нэм.</p></div>}
+        {items.length === 0 && <div className="text-center py-8"><Mascot name="cute" size={60} className="mx-auto mb-2 opacity-80" /><p className="text-fog text-sm">{COPY.life.emptyList}</p></div>}
       </Card>
-      <p className="text-[11px] text-fog/70 px-1">Status дээр дарж <b style={{ color: "#7C8296" }}>{sl.todo}</b> → <b style={{ color: "#F2C14E" }}>{sl.doing}</b> → <b style={{ color: "#5AD1A8" }}>{sl.done}</b> сэлгэнэ. Огноо тавьсан зүйл тухайн өдөр Dashboard-д автоматаар гарна.</p>
+      <p className="text-[11px] text-fog/70 px-1">{COPY.life.listHint(sl.todo, sl.doing, sl.done)}</p>
     </div>
   );
 }
