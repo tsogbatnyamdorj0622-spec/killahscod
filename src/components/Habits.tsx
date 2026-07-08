@@ -6,6 +6,7 @@ import { lastNDays, todayStr, weekdayMn } from "@/lib/date";
 import { XP_PER_HABIT } from "@/lib/xp";
 import { Card } from "./ui";
 import Mascot from "./Mascot";
+import { COPY } from "@/lib/copy";
 
 type Habit = { id: string; name: string; emoji: string; kind: string; sort_order: number };
 type Log = { habit_id: string; log_date: string; done: boolean };
@@ -76,7 +77,7 @@ export default function Habits() {
     setNm(""); setAdding(false); load();
   }
   async function removeHabit(id: string) {
-    if (!confirm("Устгах уу? Түүх нь бас арилна.")) return;
+    if (!confirm(COPY.habits.confirmDelete)) return;
     await supabase.from("habits").delete().eq("id", id);
     load();
   }
@@ -88,17 +89,17 @@ export default function Habits() {
     <div className="space-y-5 animate-rise">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl md:text-3xl font-extrabold text-bone">Habits</h1>
-          <p className="text-fog text-sm">Сайныг бос. Муугаа тас.</p>
+          <h1 className="font-display text-2xl md:text-3xl font-extrabold text-bone">{COPY.habits.title}</h1>
+          <p className="text-fog text-sm">{COPY.habits.subtitle}</p>
         </div>
-        <button onClick={() => setAdding((v) => !v)} className="rounded-lg bg-ember text-ink font-semibold px-4 py-2 text-sm hover:brightness-110">{adding ? "Хаах" : "+ Нэмэх"}</button>
+        <button onClick={() => setAdding((v) => !v)} className="rounded-lg bg-ember text-ink font-semibold px-4 py-2 text-sm hover:brightness-110">{adding ? COPY.habits.closeBtn : COPY.habits.addBtn}</button>
       </header>
 
       {adding && (
         <Card className="p-4 animate-rise">
           <div className="seg inline-flex bg-ink border border-line rounded-lg p-1 mb-3">
-            <button onClick={() => { setNk("build"); setNe("🌅"); }} className={`px-4 py-1.5 rounded-md text-sm ${nk === "build" ? "bg-panel2 text-mint" : "text-fog"}`}>🌅 Сайн</button>
-            <button onClick={() => { setNk("break"); setNe("🚫"); }} className={`px-4 py-1.5 rounded-md text-sm ${nk === "break" ? "bg-panel2 text-red" : "text-fog"}`}>☠️ Хорт</button>
+            <button onClick={() => { setNk("build"); setNe("🌅"); }} className={`px-4 py-1.5 rounded-md text-sm ${nk === "build" ? "bg-panel2 text-mint" : "text-fog"}`}>{COPY.habits.kindBuild}</button>
+            <button onClick={() => { setNk("break"); setNe("🚫"); }} className={`px-4 py-1.5 rounded-md text-sm ${nk === "break" ? "bg-panel2 text-red" : "text-fog"}`}>{COPY.habits.kindBreak}</button>
           </div>
           <div className="flex flex-wrap gap-1.5 mb-3">
             {(nk === "build" ? EMO_BUILD : EMO_BREAK).map((e) => (
@@ -107,9 +108,9 @@ export default function Habits() {
           </div>
           <div className="flex gap-2">
             <input value={nm} onChange={(e) => setNm(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addHabit()}
-              placeholder={nk === "build" ? "ж: Wake up 05:00" : "ж: No sugar"}
+              placeholder={nk === "build" ? COPY.habits.placeholderBuild : COPY.habits.placeholderBreak}
               className="flex-1 rounded-lg bg-ink border border-line px-3 py-2 text-bone outline-none focus:border-ember" />
-            <button onClick={addHabit} className="rounded-lg bg-mint text-ink font-semibold px-4 hover:brightness-110">OK</button>
+            <button onClick={addHabit} className="rounded-lg bg-mint text-ink font-semibold px-4 hover:brightness-110">{COPY.habits.okBtn}</button>
           </div>
         </Card>
       )}
@@ -117,23 +118,62 @@ export default function Habits() {
       <div className="seg inline-flex bg-ink border border-line rounded-lg p-1">
         {(["all", "build", "break"] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)} className={`px-4 py-1.5 rounded-md text-sm ${tab === t ? "bg-panel2 text-bone" : "text-fog"}`}>
-            {t === "all" ? "Бүгд" : t === "build" ? "🌅 Сайн" : "☠️ Хорт"}
+            {t === "all" ? COPY.habits.tabAll : t === "build" ? COPY.habits.kindBuild : COPY.habits.kindBreak}
           </button>
         ))}
       </div>
 
-      <Card className="p-0 overflow-hidden">
+      {/* MOBILE: зөвхөн өнөөдрийн чек */}
+      <div className="md:hidden space-y-2">
+        {shown.map((h) => {
+          const isBreak = h.kind === "break";
+          const v = logsGet(logs, h.id, today);
+          const on = isBreak ? v !== undefined : v === true;
+          const all30 = lastNDays(30);
+          let num = 0;
+          all30.forEach((d) => {
+            const x = logsGet(logs, h.id, d);
+            if (isBreak) { if (x !== undefined) num++; } else { if (x === true) num++; }
+          });
+          const pctVal = Math.round((num / 30) * 100);
+          return (
+            <Card key={h.id} className="p-3 flex items-center gap-3">
+              <span className="text-xl">{h.emoji}</span>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm text-bone truncate">{h.name}</div>
+                <div className="text-[10px] mono" style={{ color: isBreak ? "#F2555A" : "#5AD1A8" }}>
+                  {pctVal}%{isBreak ? " " + COPY.habits.pctSlipped : ""} · 30х
+                </div>
+              </div>
+              <button onClick={() => cycle(h, today)}
+                className={`h-10 w-10 rounded-xl border-2 grid place-items-center text-lg font-bold transition shrink-0
+                  ${on ? (isBreak ? "bg-red border-red text-ink" : "bg-mint border-mint text-ink shadow-[0_0_12px_rgba(90,209,168,.4)]") : "border-line active:scale-95"}`}>
+                {on ? (isBreak ? "✕" : "✓") : ""}
+              </button>
+            </Card>
+          );
+        })}
+        {shown.length === 0 && (
+          <Card className="p-8 text-center">
+            <Mascot name="hope" size={64} className="mx-auto mb-2 opacity-80" />
+            <p className="text-fog text-sm">{COPY.habits.emptyText} <span className="text-ember">{COPY.habits.emptyLink}</span>.</p>
+          </Card>
+        )}
+      </div>
+
+      {/* DESKTOP: 14 хоногийн grid */}
+      <Card className="p-0 overflow-hidden hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead><tr className="border-b border-line">
-              <th className="sticky left-0 bg-panel z-10 text-left px-4 py-3 text-[11px] uppercase tracking-wider text-fog font-medium min-w-[170px]">Зуршил</th>
+              <th className="sticky left-0 bg-panel z-10 text-left px-4 py-3 text-[11px] uppercase tracking-wider text-fog font-medium min-w-[170px]">{COPY.habits.colHabit}</th>
               {days.map((d) => (
                 <th key={d} className={`px-1.5 py-2 min-w-[34px] ${d === today ? "text-ember" : "text-fog"}`}>
                   <div className="text-[10px]">{weekdayMn(d)}</div>
                   <div className="text-[11px] font-semibold tnum">{new Date(d + "T00:00:00").getDate()}</div>
                 </th>
               ))}
-              <th className="px-2 py-2 text-[11px] uppercase text-fog">30х</th>
+              <th className="px-2 py-2 text-[11px] uppercase text-fog">{COPY.habits.col30d}</th>
             </tr></thead>
             <tbody>
               {shown.map((h) => {
@@ -152,7 +192,7 @@ export default function Habits() {
                     <td className="sticky left-0 bg-panel z-10 px-4 py-2.5">
                       <div className="flex items-center gap-2">
                         <span>{h.emoji}</span><span className="text-sm text-bone truncate">{h.name}</span>
-                        {isBreak && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red/10 text-red border border-red/30 ml-auto">хорт</span>}
+                        {isBreak && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red/10 text-red border border-red/30 ml-auto">{COPY.habits.badgeBreak}</span>}
                         <button onClick={() => removeHabit(h.id)} className="opacity-0 group-hover:opacity-100 text-fog hover:text-ember text-xs">✕</button>
                       </div>
                     </td>
@@ -174,7 +214,7 @@ export default function Habits() {
                       );
                     })}
                     <td className="px-2 text-center mono text-[11px]" style={{ color: isBreak ? "#F2555A" : "#5AD1A8" }}>
-                      {pctVal}%{isBreak ? " автсан" : ""}
+                      {pctVal}%{isBreak ? " " + COPY.habits.pctSlipped : ""}
                     </td>
                   </tr>
                 );
@@ -182,7 +222,7 @@ export default function Habits() {
               {shown.length === 0 && (
                 <tr><td colSpan={DAYS + 2} className="text-center py-10">
                   <Mascot name="hope" size={70} className="mx-auto mb-2 opacity-80" />
-                  <p className="text-fog text-sm">Зуршил алга. Дээрээс <span className="text-ember">+ Нэмэх</span>.</p>
+                  <p className="text-fog text-sm">{COPY.habits.emptyText} <span className="text-ember">{COPY.habits.emptyLink}</span>.</p>
                 </td></tr>
               )}
             </tbody>
@@ -190,8 +230,8 @@ export default function Habits() {
         </div>
       </Card>
       <p className="text-[11px] text-fog/70 px-1">
-        <b className="text-mint">Сайн:</b> хийсэн бол чекл (+{XP_PER_HABIT} XP). &nbsp;
-        <b className="text-red">Хорт:</b> тухайн зуршилдаа <b className="text-red">автсан</b> өдрөө чекл (улаан). Хоосон = автаагүй = сайн.
+        <b className="text-mint">{COPY.habits.hintBuild}</b> {COPY.habits.hintBuildText(XP_PER_HABIT)} &nbsp;
+        <b className="text-red">{COPY.habits.hintBreak}</b> {COPY.habits.hintBreakText}
       </p>
     </div>
   );
