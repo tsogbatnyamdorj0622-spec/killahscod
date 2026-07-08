@@ -16,6 +16,7 @@ const config: Config = {
         mint: "#5AD1A8",       // positive data
         violet: "#8A7BF2",     // secondary data
         gold: "#F2C14E",       // level / xp
+        red: "#F2555A",        // хорт зуршил / автсан
       },
       fontFamily: {
         display: ["var(--font-display)", "system-ui", "sans-serif"],
