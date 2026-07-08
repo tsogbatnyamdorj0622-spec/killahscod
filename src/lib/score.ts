@@ -25,10 +25,12 @@ export function dayScore(i: DayInputs): number {
 }
 
 // Оноо → үг + өнгө + mascot
+import { COPY } from "./copy";
+
 export function scoreVibe(s: number): { word: string; color: string; mascot: string } {
-  if (s < 30) return { word: "Өмхий өдөр 💀", color: "#F2555A", mascot: "angry" };
-  if (s < 50) return { word: "Сул өдөр", color: "#F2C14E", mascot: "shrug" };
-  if (s < 70) return { word: "Дунд зэрэг", color: "#F2C14E", mascot: "cute" };
-  if (s < 85) return { word: "Дажгүй өдөр 🔥", color: "#FF7A45", mascot: "grind" };
-  return { word: "Дэлбэ өдөр 👑", color: "#5AD1A8", mascot: "boss" };
+  if (s < 30) return { word: COPY.score.s0, color: "#F2555A", mascot: "angry" };
+  if (s < 50) return { word: COPY.score.s30, color: "#F2C14E", mascot: "shrug" };
+  if (s < 70) return { word: COPY.score.s50, color: "#F2C14E", mascot: "cute" };
+  if (s < 85) return { word: COPY.score.s70, color: "#FF7A45", mascot: "grind" };
+  return { word: COPY.score.s85, color: "#5AD1A8", mascot: "boss" };
 }
