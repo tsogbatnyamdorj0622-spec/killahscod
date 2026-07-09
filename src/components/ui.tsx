@@ -2,7 +2,7 @@
 import React from "react";
 
 export function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`rounded-2xl border border-line bg-panel/50 backdrop-blur ${className}`}>{children}</div>;
+  return <div className={`surface-glass rounded-[20px] border border-white/[0.07] backdrop-blur-xl ${className}`}>{children}</div>;
 }
 
 export function SectionTitle({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
