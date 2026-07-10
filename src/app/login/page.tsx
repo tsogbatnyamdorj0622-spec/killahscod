@@ -70,9 +70,12 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="mt-10 flex items-end justify-between">
-              <p className="max-w-xs text-xs leading-5 text-fog/70">{COPY.login.heroNote}</p>
-              <MascotStage name={mode === "in" ? "boss" : "grind"} size={138} className="hidden sm:grid" />
+            <div className="mt-8 sm:mt-10">
+              <MascotStage name={mode === "in" ? "boss" : "grind"} size={82} compact className="mx-auto -mb-1 sm:hidden" />
+              <div className="flex items-end justify-between">
+                <p className="max-w-xs text-xs leading-5 text-fog/70">{COPY.login.heroNote}</p>
+                <MascotStage name={mode === "in" ? "boss" : "grind"} size={138} className="hidden sm:grid" />
+              </div>
             </div>
           </section>
 
