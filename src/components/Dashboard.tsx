@@ -7,7 +7,7 @@ import { lastNDays, shortLabel, todayStr } from "@/lib/date";
 import { levelFromXp, rankFor } from "@/lib/xp";
 import { dayScore, scoreVibe, DayInputs } from "@/lib/score";
 import { Card } from "./ui";
-import Mascot from "./Mascot";
+import { MascotStage } from "./Mascot";
 import { COPY } from "@/lib/copy";
 
 type Habit = { id: string; kind: string };
@@ -131,8 +131,8 @@ export default function Dashboard() {
 
       {/* DAY SCORE + mascot */}
       <Card className="relative overflow-hidden p-6 lg:col-span-5">
-        <Mascot name={vibe.mascot} size={110} className="absolute -right-2 -bottom-3 opacity-90 pointer-events-none" />
-        <div className="relative">
+        <div className="relative grid items-center gap-3 sm:grid-cols-[minmax(0,1fr)_150px]">
+          <div>
           <div className="relative grid place-items-center mx-auto" style={{ width: 180, height: 180 }}>
             <svg width="180" height="180" style={{ transform: "rotate(-90deg)" }}>
               <circle cx="90" cy="90" r="78" stroke="#262A38" strokeWidth="13" fill="none" />
@@ -149,6 +149,8 @@ export default function Dashboard() {
           <div className="hint text-xs text-fog mt-1">
             {score === 0 ? COPY.dash.emptyHint : streak > 0 ? COPY.dash.streakGoing(streak) : COPY.dash.streakNew}
           </div>
+          </div>
+          <MascotStage name={vibe.mascot} size={112} accent={vibe.color} className="mx-auto" />
         </div>
       </Card>
 

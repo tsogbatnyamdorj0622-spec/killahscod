@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/useAuth";
 import { supabase } from "@/lib/supabase";
 import { COPY } from "@/lib/copy";
-import Mascot from "./Mascot";
+import Mascot, { MascotStage } from "./Mascot";
 
 const NAV = [
   { href: "/", label: COPY.nav.dashboard, icon: "◎" },
@@ -27,7 +27,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen grid place-items-center">
         <div className="flex flex-col items-center gap-3">
-          <Mascot name="grind" size={64} className="animate-glow" />
+          <MascotStage name="grind" size={68} compact />
           <div className="h-1 w-24 rounded-full bg-line overflow-hidden">
             <div className="h-full w-1/3 bg-ember animate-pulse" />
           </div>
@@ -78,7 +78,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 export function BrandMark() {
   return (
     <div className="flex items-center gap-2.5">
-      <Mascot name="boss" size={34} />
+      <div className="relative grid h-10 w-10 place-items-center overflow-hidden rounded-xl border border-white/[0.07] bg-ember/[0.04]">
+        <span className="absolute inset-2 rounded-full bg-ember/10 blur-md" />
+        <Mascot name="boss" size={34} className="mascot-brand relative z-10" />
+      </div>
       <div className="leading-none">
         <div className="font-display font-extrabold tracking-tight text-bone">KILLAH</div>
         <div className="text-[10px] text-fog tracking-[0.2em] uppercase">by ongod 👽</div>

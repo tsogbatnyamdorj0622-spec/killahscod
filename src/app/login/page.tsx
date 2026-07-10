@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/useAuth";
 import { BrandMark } from "@/components/AppShell";
-import Mascot from "@/components/Mascot";
+import { MascotStage } from "@/components/Mascot";
 import { COPY } from "@/lib/copy";
 
 export default function LoginPage() {
@@ -72,7 +72,7 @@ export default function LoginPage() {
 
             <div className="mt-10 flex items-end justify-between">
               <p className="max-w-xs text-xs leading-5 text-fog/70">{COPY.login.heroNote}</p>
-              <Mascot name={mode === "in" ? "boss" : "grind"} size={128} className="hidden drop-shadow-[0_18px_40px_rgba(255,122,69,0.15)] sm:block" />
+              <MascotStage name={mode === "in" ? "boss" : "grind"} size={138} className="hidden sm:grid" />
             </div>
           </section>
 

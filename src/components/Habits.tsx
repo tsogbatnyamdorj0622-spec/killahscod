@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/useAuth";
 import { lastNDays, todayStr, weekdayMn } from "@/lib/date";
 import { XP_PER_HABIT } from "@/lib/xp";
 import { Card } from "./ui";
-import Mascot from "./Mascot";
+import { MascotStage } from "./Mascot";
 import { COPY } from "@/lib/copy";
 
 type Habit = { id: string; name: string; emoji: string; kind: string; sort_order: number };
@@ -155,7 +155,7 @@ export default function Habits() {
         })}
         {shown.length === 0 && (
           <Card className="p-8 text-center">
-            <Mascot name="hope" size={64} className="mx-auto mb-2 opacity-80" />
+            <MascotStage name="hope" size={58} accent="#5AD1A8" compact className="mx-auto mb-1" />
             <p className="text-fog text-sm">{COPY.habits.emptyText} <span className="text-ember">{COPY.habits.emptyLink}</span>.</p>
           </Card>
         )}
@@ -221,7 +221,7 @@ export default function Habits() {
               })}
               {shown.length === 0 && (
                 <tr><td colSpan={DAYS + 2} className="text-center py-10">
-                  <Mascot name="hope" size={70} className="mx-auto mb-2 opacity-80" />
+                  <MascotStage name="hope" size={62} accent="#5AD1A8" compact className="mx-auto mb-1" />
                   <p className="text-fog text-sm">{COPY.habits.emptyText} <span className="text-ember">{COPY.habits.emptyLink}</span>.</p>
                 </td></tr>
               )}
