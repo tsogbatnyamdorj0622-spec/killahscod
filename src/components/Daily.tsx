@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/useAuth";
 import { lastNDays, shortLabel, todayStr, weekdayMn } from "@/lib/date";
 import { dayScore, scoreVibe } from "@/lib/score";
 import { Card } from "./ui";
-import Mascot from "./Mascot";
+import { MascotStage } from "./Mascot";
 
 type DLog = { log_date: string; mood: number | null; sleep_hours: number | null; energy: number | null; note: string | null };
 const MOODS = [{ v: 1, e: "😩", l: "Хог" }, { v: 2, e: "😕", l: "Дунд" }, { v: 3, e: "😐", l: "Зүгээр" }, { v: 4, e: "🙂", l: "Сайн" }, { v: 5, e: "🔥", l: "Дэлбэ" }];
@@ -83,13 +83,15 @@ export default function Daily() {
       </div>
 
       {/* live day score + mascot */}
-      <Card className="p-5 relative overflow-hidden">
-        <Mascot name={vibe.mascot} size={92} className="absolute -right-1 -bottom-2 opacity-90 pointer-events-none" />
-        <div className="relative">
+      <Card className="relative overflow-hidden p-5">
+        <div className="relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+          <div>
           <div className="text-[11px] uppercase tracking-widest text-fog">{isToday ? "Өнөөдрийн үнэлгээ" : shortLabel(date) + "-ний үнэлгээ"}</div>
           <div className="font-display font-extrabold tnum" style={{ fontSize: 46, lineHeight: 1.1, color: vibe.color }}>{score}</div>
           <div className="font-display font-bold" style={{ color: vibe.color }}>{vibe.word}</div>
           <div className="text-[11px] text-fog mt-1">Бөглөх тусам шинэчлэгдэнэ.{isToday && habitScore.bt > 0 ? ` Зуршил ${habitScore.bd}/${habitScore.bt}.` : ""}</div>
+          </div>
+          <MascotStage name={vibe.mascot} size={78} accent={vibe.color} compact />
         </div>
       </Card>
 

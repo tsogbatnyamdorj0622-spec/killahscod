@@ -19,52 +19,64 @@ export const COPY = {
 
   // ---------- Login ----------
   login: {
-    titleIn: "Буцаж ирлээ.",
-    titleUp: "Grind эхэлье.",
-    subIn: "Өдрийн бүртгэлээ нээ.",
-    subUp: "Зөвхөн чиний нүд харна. Хэн ч биш.",
+    privateLabel: "Хувийн орон зай",
+    badgeLeft: "Өдөр тутмын бүртгэл",
+    badgeRight: "Нэг дор",
+    heroLine1: "Өдрөө",
+    heroLine2: "нэг дор.",
+    heroBody: "Зуршил, нойр, сэтгэл санаа, хийх ажлаа хялбар бүртгэж, ахицаа хараарай.",
+    heroNote: "Өдөр бүрийн жижиг бүртгэл.",
+    accessLabel: "Нэвтрэх",
+    dataNote: "Таны мэдээлэл хувийн",
+    statToday: "Өнөөдөр",
+    statTrend: "14 хоног",
+    statXp: "Ахиц",
+    titleIn: "Тавтай морил.",
+    titleUp: "Бүртгэл үүсгэх",
+    subIn: "Бүртгэлдээ нэвтэрнэ үү.",
+    subUp: "Эхлэхэд хэдхэн секунд.",
     email: "И-мэйл",
     password: "Нууц үг",
     btnIn: "Нэвтрэх",
-    btnUp: "Бүртгүүлэх",
+    btnUp: "Бүртгэл үүсгэх",
     swapToUp: "Шинэ хэрэглэгч үү? Бүртгүүлэх",
-    swapToIn: "Аль хэдийн бүртгэлтэй? Нэвтрэх",
-    created: "Бүртгэл үүслээ. Одоо нэвтэрч ор.",
-    wrongCreds: "И-мэйл эсвэл нууц үг буруу.",
+    swapToIn: "Бүртгэлтэй юу? Нэвтрэх",
+    created: "Бүртгэл үүслээ. Одоо нэвтэрнэ үү.",
+    wrongCreds: "И-мэйл эсвэл нууц үг буруу байна.",
     footer: "killah.ongod.space",
   },
 
   // ---------- Day Score үгс (оноогоор) ----------
   score: {
-    s0: "Өмхий өдөр 💀",     // 0-29
-    s30: "Сул өдөр",          // 30-49
-    s50: "Дунд зэрэг",        // 50-69
-    s70: "Дажгүй өдөр 🔥",    // 70-84
-    s85: "Дэлбэ өдөр 👑",     // 85-100
+    s0: "Бүртгэл дутуу",       // 0-29
+    s30: "Бага ахиц",           // 30-49
+    s50: "Дундаж өдөр",         // 50-69
+    s70: "Сайн өдөр",           // 70-84
+    s85: "Маш сайн өдөр",       // 85-100
   },
 
   // ---------- Dashboard ----------
   dash: {
-    greetNight: "Шөнө дунд",
-    greetMorning: "Өглөөний grind",
-    greetDay: "Өдрийн track",
-    greetEvening: "Өдрийн дүн",
-    title: "Өнөөдөр хэр дажгүй вэ?",
+    greetNight: "Оройн бүртгэл",
+    greetMorning: "Өглөөний мэнд",
+    greetDay: "Өдрийн мэнд",
+    greetEvening: "Оройн мэнд",
+    title: "Өнөөдрийн тойм",
     dayScoreLabel: "day score",
-    emptyHint: "Бүртгэл хоосон. Доороос эхэл.",
-    streakGoing: (n: number) => `${n} өдрийн гинж. Бүү тас.`,
-    streakNew: "Шинэ гинж эхэлж байна.",
-    breakdownTitle: "Юунаас бүрдэв",
-    buildBar: "🌅 Сайн зуршил хийсэн",
-    breakBar: "☠️ Хорт зуршилд автсан",
-    breakBarHint: "бага нь дээр",
+    emptyHint: "Өнөөдрийн бүртгэл хоосон байна.",
+    streakGoing: (n: number) => `${n} өдөр дараалсан байна.`,
+    streakNew: "Шинэ дараалал эхэлж байна.",
+    breakdownTitle: "Онооны бүтэц",
+    buildBar: "Сайн зуршил",
+    breakBar: "Хорт зуршил",
+    breakBarHint: "бага байх тусам сайн",
     moodBar: "😊 Mood",
     sleepBar: "😴 Нойр",
-    tasksBar: "✅ Өдрийн ажил",
+    tasksBar: "Өдрийн ажил",
     streakLabel: "Streak",
     levelLabel: (lvl: number, rank: string) => `Level ${lvl} · ${rank}`,
-    trendTitle: "Сүүлийн 14 хоногийн Day Score",
-    todayTitle: "Өнөөдрийн төлөвлөгөө · Life-аас",
+    trendTitle: "Сүүлийн 14 хоног",
+    todayTitle: "Өнөөдрийн төлөвлөгөө",
     todayEmpty: "Өнөөдөрт товлосон зүйл алга.",
     todayEmptyLink: "Life",
     todayEmptyTail: "-аас нэм.",
@@ -74,14 +86,14 @@ export const COPY = {
   // ---------- Habits ----------
   habits: {
     title: "Habits",
-    subtitle: "Сайныг бос. Муугаа тас.",
+    subtitle: "Өдөр тутмын зуршлуудаа хянаарай.",
     addBtn: "+ Нэмэх",
     closeBtn: "Хаах",
     kindBuild: "🌅 Сайн",
     kindBreak: "☠️ Хорт",
     tabAll: "Бүгд",
-    placeholderBuild: "ж: Wake up 05:00",
-    placeholderBreak: "ж: No sugar",
+    placeholderBuild: "ж: Өглөө ус уух",
+    placeholderBreak: "ж: Амттан идэхгүй",
     okBtn: "OK",
     colHabit: "Зуршил",
     col30d: "30х",
@@ -89,7 +101,7 @@ export const COPY = {
     pctSlipped: "автсан",
     emptyText: "Зуршил алга. Дээрээс",
     emptyLink: "+ Нэмэх",
-    confirmDelete: "Устгах уу? Түүх нь бас арилна.",
+    confirmDelete: "Устгах уу? Түүх нь мөн арилна.",
     hintBuild: "Сайн:",
     hintBuildText: (xp: number) => `хийсэн бол чекл (+${xp} XP).`,
     hintBreak: "Хорт:",
@@ -100,10 +112,10 @@ export const COPY = {
   daily: {
     title: "Өдрийн бүртгэл",
     saved: "хадгалагдлаа ✓",
-    subtitle: "Сонгоход шууд хадгална. Товч дарах хэрэггүй.",
+    subtitle: "Сонголт бүр автоматаар хадгалагдана.",
     scoreToday: "Өнөөдрийн үнэлгээ",
     scoreOf: (d: string) => `${d}-ний үнэлгээ`,
-    scoreHint: "Бөглөх тусам шинэчлэгдэнэ.",
+    scoreHint: "Бөглөх тусам оноо шинэчлэгдэнэ.",
     scoreHabits: (done: number, total: number) => ` Зуршил ${done}/${total}.`,
     moodTitle: "Mood",
     moods: [
@@ -117,13 +129,13 @@ export const COPY = {
     sleepHint: "Оптимум ~7.5ц",
     energyTitle: "Энерги",
     noteTitle: "Тэмдэглэл",
-    notePlaceholder: "Юу болов? Юунд талархав?",
+    notePlaceholder: "Өдрийн тэмдэглэл...",
   },
 
   // ---------- Life ----------
   life: {
     title: "Life",
-    subtitle: "Зөвхөн ажил биш. Бүх амьдрал нэг дор.",
+    subtitle: "Амьдралын чухал зүйлсээ нэг дор зохион байгуул.",
     buckets: {
       work: "Ажил",
       family: "Гэр бүл",
@@ -137,10 +149,10 @@ export const COPY = {
     addTaskPlaceholder: "+ task",
     dueTodayTag: "өнөөдөр",
     noTasks: "Task алга.",
-    noProjects: "Project алга. Дээрээс нэг үүсгэ.",
+    noProjects: "Project алга. Дээрээс нэгийг үүсгээрэй.",
     confirmArchive: "Архивлах уу?",
     addToBucket: (icon: string, label: string) => `${icon} ${label}-д нэмэх`,
-    emptyList: "Хоосон байна. Дээрээс нэм.",
+    emptyList: "Хоосон байна. Дээрээс нэмээрэй.",
     statusDefault: { todo: "Хийх", doing: "Явцтай", done: "Дууссан" },
     statusRead: { todo: "Хүсэлтэй", doing: "Уншиж байна", done: "Уншсан" },
     statusWatch: { todo: "Үзэх", doing: "Үзэж байна", done: "Үзсэн" },

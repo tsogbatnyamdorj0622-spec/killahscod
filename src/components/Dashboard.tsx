@@ -7,7 +7,7 @@ import { lastNDays, shortLabel, todayStr } from "@/lib/date";
 import { levelFromXp, rankFor } from "@/lib/xp";
 import { dayScore, scoreVibe, DayInputs } from "@/lib/score";
 import { Card } from "./ui";
-import Mascot from "./Mascot";
+import { MascotStage } from "./Mascot";
 import { COPY } from "@/lib/copy";
 
 type Habit = { id: string; kind: string };
@@ -113,18 +113,26 @@ export default function Dashboard() {
   if (!loaded) return <Skeleton />;
 
   return (
-    <div className="space-y-5 animate-rise">
-      <div className="flex items-end justify-between">
+    <div className="animate-rise">
+      <div className="mb-6 flex items-end justify-between border-b border-white/[0.06] pb-5">
         <div>
-          <div className="tag text-fog text-[11px] uppercase tracking-widest">{greet}</div>
-          <h1 className="font-display text-2xl md:text-3xl font-extrabold text-bone">{COPY.dash.title}</h1>
+          <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-ember">
+            <span className="h-1.5 w-1.5 rounded-full bg-ember shadow-[0_0_10px_#FF7A45]" />{greet}
+          </div>
+          <h1 className="font-display text-3xl font-extrabold tracking-tight text-bone md:text-4xl">{COPY.dash.title}</h1>
+        </div>
+        <div className="hidden rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-2 text-right sm:block">
+          <div className="text-[9px] uppercase tracking-widest text-fog">Today</div>
+          <div className="mono mt-0.5 text-xs text-bone">{today}</div>
         </div>
       </div>
 
+      <div className="grid gap-5 lg:grid-cols-12">
+
       {/* DAY SCORE + mascot */}
-      <Card className="p-6 relative overflow-hidden">
-        <Mascot name={vibe.mascot} size={110} className="absolute -right-2 -bottom-3 opacity-90 pointer-events-none" />
-        <div className="relative">
+      <Card className="relative overflow-hidden p-6 lg:col-span-5">
+        <div className="relative grid items-center gap-3 sm:grid-cols-[minmax(0,1fr)_150px]">
+          <div>
           <div className="relative grid place-items-center mx-auto" style={{ width: 180, height: 180 }}>
             <svg width="180" height="180" style={{ transform: "rotate(-90deg)" }}>
               <circle cx="90" cy="90" r="78" stroke="#262A38" strokeWidth="13" fill="none" />
@@ -141,11 +149,13 @@ export default function Dashboard() {
           <div className="hint text-xs text-fog mt-1">
             {score === 0 ? COPY.dash.emptyHint : streak > 0 ? COPY.dash.streakGoing(streak) : COPY.dash.streakNew}
           </div>
+          </div>
+          <MascotStage name={vibe.mascot} size={112} accent={vibe.color} className="mx-auto" />
         </div>
       </Card>
 
       {/* breakdown */}
-      <Card className="p-5">
+      <Card className="p-5 lg:col-span-7">
         <div className="text-[11px] uppercase tracking-widest text-fog mb-3">{COPY.dash.breakdownTitle}</div>
         <div className="flex flex-col gap-3">
           <BreakBar label={COPY.dash.buildBar} val={bTotal ? buildDone / bTotal : 0} right={`${buildDone}/${bTotal}`} color="#5AD1A8" />
@@ -157,7 +167,7 @@ export default function Dashboard() {
       </Card>
 
       {/* streak + xp */}
-      <Card className="p-5">
+      <Card className="p-5 lg:col-span-5">
         <div className="flex justify-between items-center">
           <div><div className="text-[11px] uppercase tracking-widest text-fog">{COPY.dash.streakLabel}</div><div className="font-display text-2xl font-extrabold text-ember tnum">{streak}🔥</div></div>
           <div className="text-right"><div className="text-[11px] uppercase tracking-widest text-fog">{COPY.dash.levelLabel(lvl.level, rankFor(lvl.level))}</div><div className="text-xs text-fog tnum mono">{xp} / {xp - lvl.into + lvl.span} XP</div></div>
@@ -168,7 +178,7 @@ export default function Dashboard() {
       </Card>
 
       {/* trend */}
-      <Card className="p-5">
+      <Card className="p-5 lg:col-span-7">
         <div className="text-[11px] uppercase tracking-widest text-fog mb-2">{COPY.dash.trendTitle}</div>
         <div className="h-40">
           <ResponsiveContainer width="100%" height="100%">
@@ -184,7 +194,7 @@ export default function Dashboard() {
       </Card>
 
       {/* today's plan */}
-      <Card className="p-5">
+      <Card className="p-5 lg:col-span-12">
         <div className="flex justify-between items-baseline mb-1">
           <div className="text-[11px] uppercase tracking-widest text-fog">{COPY.dash.todayTitle}</div>
           <div className="text-xs text-fog tnum mono">{tasksToday.done}/{tasksToday.total}</div>
@@ -199,6 +209,7 @@ export default function Dashboard() {
           </div>
         ))}
       </Card>
+      </div>
     </div>
   );
 }

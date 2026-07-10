@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/useAuth";
 import { todayStr } from "@/lib/date";
 import { Card } from "./ui";
-import Mascot from "./Mascot";
+import { MascotStage } from "./Mascot";
 import { COPY } from "@/lib/copy";
 
 type Bucket = "work" | "family" | "money" | "skill" | "read" | "watch";
@@ -129,7 +129,7 @@ function WorkPane({ userId }: { userId: string | null }) {
             </Card>
           );
         })}
-        {projects.length === 0 && <Card className="p-8 text-center md:col-span-2"><Mascot name="hope" size={64} className="mx-auto mb-2 opacity-80" /><p className="text-fog">{COPY.life.noProjects}</p></Card>}
+        {projects.length === 0 && <Card className="p-8 text-center md:col-span-2"><MascotStage name="hope" size={58} accent="#8A7BF2" compact className="mx-auto mb-1" /><p className="text-fog">{COPY.life.noProjects}</p></Card>}
       </div>
     </div>
   );
@@ -194,7 +194,7 @@ function ListPane({ userId, bucket }: { userId: string | null; bucket: Bucket })
             </div>
           );
         })}
-        {items.length === 0 && <div className="text-center py-8"><Mascot name="cute" size={60} className="mx-auto mb-2 opacity-80" /><p className="text-fog text-sm">{COPY.life.emptyList}</p></div>}
+        {items.length === 0 && <div className="text-center py-8"><MascotStage name="cute" size={56} accent={meta.color} compact className="mx-auto mb-1" /><p className="text-fog text-sm">{COPY.life.emptyList}</p></div>}
       </Card>
       <p className="text-[11px] text-fog/70 px-1">{COPY.life.listHint(sl.todo, sl.doing, sl.done)}</p>
     </div>
