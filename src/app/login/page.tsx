@@ -29,11 +29,11 @@ export default function LoginPage() {
       } else {
         const { error } = await supabase.auth.signUp({ email, password: pw });
         if (error) throw error;
-        setMsg("Бүртгэл үүслээ. Одоо нэвтэрч ор.");
+        setMsg(COPY.login.created);
         setMode("in");
       }
     } catch (e: any) {
-      setMsg(e.message === "Invalid login credentials" ? "И-мэйл эсвэл нууц үг буруу." : e.message);
+      setMsg(e.message === "Invalid login credentials" ? COPY.login.wrongCreds : e.message);
     } finally { setBusy(false); }
   }
 
@@ -45,7 +45,7 @@ export default function LoginPage() {
           <BrandMark />
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-fog">
             <span className="h-1.5 w-1.5 rounded-full bg-mint shadow-[0_0_12px_#5AD1A8]" />
-            Private daily system
+            {COPY.login.privateLabel}
           </div>
         </header>
 
@@ -53,25 +53,25 @@ export default function LoginPage() {
           <section className="flex flex-col justify-between border-b border-white/[0.06] p-6 md:p-10 lg:border-b-0 lg:border-r lg:p-14">
             <div className="max-w-xl animate-rise">
               <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-ember/20 bg-ember/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-ember">
-                <span>Day by day</span><span className="text-fog">/</span><span>Level by level</span>
+                <span>{COPY.login.badgeLeft}</span><span className="text-fog">/</span><span>{COPY.login.badgeRight}</span>
               </div>
               <h1 className="font-display text-4xl font-extrabold leading-[0.98] tracking-[-0.04em] text-bone sm:text-5xl md:text-6xl">
-                Өдрөө хяна.<br />
-                <span className="text-gradient">Өөрийгөө ял.</span>
+                {COPY.login.heroLine1}<br />
+                <span className="text-gradient">{COPY.login.heroLine2}</span>
               </h1>
               <p className="mt-6 max-w-md text-sm leading-7 text-fog md:text-base">
-                Зуршил, mood, нойр, хийх ажлаа нэг дор бүртгээд бодит ахицаа өдөр бүр хар.
+                {COPY.login.heroBody}
               </p>
 
               <div className="mt-8 grid max-w-lg grid-cols-3 gap-2.5">
-                <MiniStat value="01" label="Daily score" />
-                <MiniStat value="14D" label="Trend" />
-                <MiniStat value="XP" label="Level up" />
+                <MiniStat value="01" label={COPY.login.statToday} />
+                <MiniStat value="14D" label={COPY.login.statTrend} />
+                <MiniStat value="XP" label={COPY.login.statXp} />
               </div>
             </div>
 
             <div className="mt-10 flex items-end justify-between">
-              <p className="max-w-xs text-xs leading-5 text-fog/70">Consistency beats intensity. Бага багаар, гэхдээ өдөр бүр.</p>
+              <p className="max-w-xs text-xs leading-5 text-fog/70">{COPY.login.heroNote}</p>
               <Mascot name={mode === "in" ? "boss" : "grind"} size={128} className="hidden drop-shadow-[0_18px_40px_rgba(255,122,69,0.15)] sm:block" />
             </div>
           </section>
@@ -79,7 +79,7 @@ export default function LoginPage() {
           <section className="grid place-items-center p-6 md:p-10 lg:p-14">
             <div className="w-full max-w-sm animate-rise">
               <div className="mb-7">
-                <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-ember">Access your space</div>
+                <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-ember">{COPY.login.accessLabel}</div>
                 <h2 className="font-display text-3xl font-extrabold tracking-tight text-bone">
                   {mode === "in" ? COPY.login.titleIn : COPY.login.titleUp}
                 </h2>
@@ -117,7 +117,7 @@ export default function LoginPage() {
               </button>
 
               <div className="mt-8 flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest text-fog/55">
-                <span className="h-px w-8 bg-line" /> Your data stays yours <span className="h-px w-8 bg-line" />
+                <span className="h-px w-8 bg-line" /> {COPY.login.dataNote} <span className="h-px w-8 bg-line" />
               </div>
             </div>
           </section>
