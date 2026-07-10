@@ -4,13 +4,14 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/useAuth";
 import { supabase } from "@/lib/supabase";
+import { COPY } from "@/lib/copy";
 import Mascot from "./Mascot";
 
 const NAV = [
-  { href: "/", label: "Dashboard", icon: "◎" },
-  { href: "/habits", label: "Habits", icon: "✓" },
-  { href: "/life", label: "Life", icon: "▲" },
-  { href: "/daily", label: "Бүртгэл", icon: "◐" },
+  { href: "/", label: COPY.nav.dashboard, icon: "◎" },
+  { href: "/habits", label: COPY.nav.habits, icon: "✓" },
+  { href: "/life", label: COPY.nav.life, icon: "▲" },
+  { href: "/daily", label: COPY.nav.daily, icon: "◐" },
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -40,7 +41,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen pb-24 md:pb-0 md:pl-[272px]">
       <aside className="fixed left-0 top-0 z-30 hidden h-screen w-[272px] flex-col border-r border-white/[0.06] bg-panel/35 px-5 py-6 backdrop-blur-xl md:flex">
         <div className="rounded-2xl border border-white/[0.06] bg-white/[0.025] p-4"><BrandMark /></div>
-        <div className="mt-7 px-3 text-[9px] font-semibold uppercase tracking-[0.22em] text-fog/60">Your system</div>
+        <div className="mt-7 px-3 text-[9px] font-semibold uppercase tracking-[0.22em] text-fog/60">Юмнууд чинь</div>
         <nav className="mt-3 flex flex-col gap-1.5">
           {NAV.map((n) => (
             <Link key={n.href} href={n.href}
@@ -52,11 +53,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
         <div className="mt-auto rounded-2xl border border-white/[0.06] bg-gradient-to-br from-ember/[0.09] to-transparent p-4">
-          <div className="text-[9px] uppercase tracking-[0.2em] text-ember">Daily reminder</div>
-          <div className="mt-2 font-display text-sm font-bold leading-5 text-bone">Бага багаар.<br />Гэхдээ өдөр бүр.</div>
+          <div className="text-[9px] uppercase tracking-[0.2em] text-ember">Reality check</div>
+          <div className="mt-2 font-display text-sm font-bold leading-5 text-bone">Хийсэн бол чекл.<br />Хийгээгүй бол үнэнээ хэл.</div>
         </div>
         <button onClick={() => supabase.auth.signOut()}
-          className="mt-3 rounded-xl px-3 py-2 text-left text-xs text-fog transition hover:bg-white/[0.025] hover:text-ember">Гарах →</button>
+          className="mt-3 rounded-xl px-3 py-2 text-left text-xs text-fog transition hover:bg-white/[0.025] hover:text-ember">{COPY.nav.logout}</button>
       </aside>
 
       <main className="mx-auto max-w-6xl px-4 py-6 md:px-8 md:py-10 lg:px-10">{children}</main>
