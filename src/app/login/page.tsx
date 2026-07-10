@@ -43,7 +43,7 @@ export default function LoginPage() {
         <div className="pointer-events-none absolute inset-0 login-grid opacity-40" />
         <header className="relative z-10 flex items-center justify-between border-b border-white/[0.06] px-5 py-4 md:px-8">
           <BrandMark />
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-fog">
+          <div className="hidden items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-fog sm:flex">
             <span className="h-1.5 w-1.5 rounded-full bg-mint shadow-[0_0_12px_#5AD1A8]" />
             {COPY.login.privateLabel}
           </div>
