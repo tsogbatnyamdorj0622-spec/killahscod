@@ -1,18 +1,13 @@
 "use client";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/useAuth";
 import { lastNDays, shortLabel, todayStr, weekdayMn } from "@/lib/date";
+import { MOODS } from "@/lib/moods";
 import { Card, SectionTitle } from "./ui";
 
 type DLog = { log_date: string; mood: number | null; sleep_hours: number | null; energy: number | null; note: string | null };
-const MOODS = [
-  { v: 1, e: "😩", l: "Хог" },
-  { v: 2, e: "😕", l: "Дунд" },
-  { v: 3, e: "😐", l: "Зүгээр" },
-  { v: 4, e: "🙂", l: "Сайн" },
-  { v: 5, e: "🔥", l: "Дэлбэ" },
-];
 
 export default function Mood() {
   const { userId } = useAuth();
@@ -62,7 +57,10 @@ export default function Mood() {
               ${d === date ? "border-ember bg-ember/10 text-bone" : "border-line text-fog hover:border-fog"}`}>
             <span className="text-[10px]">{weekdayMn(d)}</span>
             <span className="text-sm font-semibold tnum">{new Date(d + "T00:00:00").getDate()}</span>
-            {logs[d]?.mood && <span className="text-xs mt-0.5">{MOODS.find((m) => m.v === logs[d].mood)?.e}</span>}
+            {logs[d]?.mood && (() => {
+              const mood = MOODS.find((m) => m.v === logs[d].mood);
+              return mood ? <Image src={mood.image} alt="" width={18} height={18} className="mt-1 rounded-full" /> : null;
+            })()}
           </button>
         ))}
       </div>
@@ -74,10 +72,13 @@ export default function Mood() {
         <div className="grid grid-cols-5 gap-2">
           {MOODS.map((m) => (
             <button key={m.v} onClick={() => patch({ mood: m.v })}
-              className={`flex flex-col items-center gap-1 rounded-xl py-3 border transition
-                ${cur.mood === m.v ? "border-mint bg-mint/10" : "border-line hover:border-fog"}`}>
-              <span className="text-2xl">{m.e}</span>
-              <span className="text-[10px] text-fog">{m.l}</span>
+              aria-pressed={cur.mood === m.v}
+              aria-label={`${m.l} mood сонгох`}
+              className={`group flex min-w-0 flex-col items-center gap-2 rounded-2xl border p-1.5 pb-2.5 transition-all duration-200 sm:p-2 sm:pb-3
+                ${cur.mood === m.v ? "border-mint bg-mint/10 shadow-[0_0_24px_rgba(83,224,181,0.13)]" : "border-line hover:border-fog hover:bg-white/[0.02]"}`}>
+              <Image src={m.image} alt={`${m.l} ONGOD`} width={96} height={96}
+                className={`aspect-square w-full rounded-xl object-cover transition-transform duration-200 ${cur.mood === m.v ? "scale-[1.03]" : "group-hover:scale-[1.02]"}`} />
+              <span className={`truncate text-[10px] sm:text-[11px] ${cur.mood === m.v ? "font-semibold text-mint" : "text-fog"}`}>{m.l}</span>
             </button>
           ))}
         </div>
