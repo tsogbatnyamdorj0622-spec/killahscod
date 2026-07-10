@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type DragEvent } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/useAuth";
 import { lastNDays, todayStr, weekdayMn } from "@/lib/date";
@@ -24,6 +24,8 @@ export default function Habits() {
   const [nk, setNk] = useState<"build" | "break">("build");
   const [nm, setNm] = useState("");
   const [ne, setNe] = useState("🌅");
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   const days = lastNDays(DAYS);
   const today = todayStr();
@@ -80,6 +82,33 @@ export default function Habits() {
     if (!confirm(COPY.habits.confirmDelete)) return;
     await supabase.from("habits").delete().eq("id", id);
     load();
+  }
+
+  function startDrag(e: DragEvent<HTMLButtonElement>, id: string) {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", id);
+    setDraggedId(id);
+  }
+
+  async function dropHabit(targetId: string) {
+    if (!draggedId || draggedId === targetId || tab !== "all") {
+      setDraggedId(null); setDragOverId(null); return;
+    }
+    const from = habits.findIndex((h) => h.id === draggedId);
+    const to = habits.findIndex((h) => h.id === targetId);
+    if (from < 0 || to < 0) return;
+
+    const next = [...habits];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    const ordered = next.map((h, i) => ({ ...h, sort_order: i }));
+    setHabits(ordered);
+    setDraggedId(null); setDragOverId(null);
+
+    const results = await Promise.all(ordered.map((h) =>
+      supabase.from("habits").update({ sort_order: h.sort_order }).eq("id", h.id)
+    ));
+    if (results.some((r) => r.error)) load();
   }
 
   const shown = habits.filter((h) => tab === "all" || h.kind === tab);
@@ -188,9 +217,15 @@ export default function Habits() {
                 });
                 const pctVal = Math.round((num / 30) * 100);
                 return (
-                  <tr key={h.id} className="border-b border-line/50 group">
+                  <tr key={h.id}
+                    onDragOver={(e) => { if (tab === "all") { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverId(h.id); } }}
+                    onDragLeave={() => dragOverId === h.id && setDragOverId(null)}
+                    onDrop={(e) => { e.preventDefault(); dropHabit(h.id); }}
+                    className={`border-b border-line/50 group transition-colors ${dragOverId === h.id ? "bg-ember/[0.07]" : ""} ${draggedId === h.id ? "opacity-45" : ""}`}>
                     <td className="sticky left-0 bg-panel z-10 px-4 py-2.5">
                       <div className="flex items-center gap-2">
+                        {tab === "all" && <button type="button" draggable onDragStart={(e) => startDrag(e, h.id)} onDragEnd={() => { setDraggedId(null); setDragOverId(null); }}
+                          className="cursor-grab select-none text-fog/45 hover:text-ember active:cursor-grabbing" title="Чирж байрлалыг солих" aria-label={`${h.name} зуршлын байрлалыг солих`}>⠿</button>}
                         <span>{h.emoji}</span><span className="text-sm text-bone truncate">{h.name}</span>
                         {isBreak && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red/10 text-red border border-red/30 ml-auto">{COPY.habits.badgeBreak}</span>}
                         <button onClick={() => removeHabit(h.id)} className="opacity-0 group-hover:opacity-100 text-fog hover:text-ember text-xs">✕</button>
